@@ -1,7 +1,10 @@
+mod window;
+
 use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
+use crate::window::GUI;
 
 #[derive(StructOpt)]
 pub struct Opt {
@@ -27,5 +30,7 @@ fn main() {
     let rom = load_rom_buffer(&args.rom);
     println!("ROM size: {} Bytes", rom.len());
 
-
+    println!("Starting GUI and hardware communication...");
+    let gui = GUI::new();
+    gui.run();
 }
