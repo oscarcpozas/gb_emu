@@ -25,6 +25,7 @@ pub enum Cycle {
 pub struct Instruction {
     pub code: String,
     pub mnemonic: String,
+    pub bits: u8,
     pub bytes: u16,
     pub cycles: Vec<u16>,
     pub operands: Vec<Operand>,
