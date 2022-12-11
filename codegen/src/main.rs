@@ -4,6 +4,7 @@ extern crate serde_json;
 
 mod generator;
 mod models;
+mod filters;
 
 use std::path::PathBuf;
 use structopt::StructOpt;
@@ -35,3 +36,8 @@ fn main() {
         }
     };
 }
+
+/*
+    Command to run code generation from root directory:
+    cargo run --bin codegen ./codegen/res/LR35902_opcodes.patched.json ./emu/src/instr.rs
+ */

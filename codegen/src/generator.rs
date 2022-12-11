@@ -1,14 +1,14 @@
 use std::fs::File;
 use std::io::Write;
 use tera::{Tera, Context};
-use crate::{Error, Generate, Result};
+use crate::{Error, filters, Generate, Result};
 use crate::models::{Instruction, Instructions};
 use crate::serde_json;
 use lazy_static::lazy_static;
 
 lazy_static! {
     pub static ref TEMPLATES: Tera = {
-        let tera = match Tera::new("codegen/templates/**/*") {
+        let mut tera = match Tera::new("codegen/templates/**/*") {
             Ok(tera) => {
                 let names: Vec<_> = tera.get_template_names().collect();
                 println!("Templates found on this location: {}", names.join(", "));
@@ -19,6 +19,9 @@ lazy_static! {
                 ::std::process::exit(1);
             }
         };
+
+        tera.register_filter("getter", filters::getter);
+        tera.register_filter("setter", filters::setter);
         tera
     };
 }
@@ -28,7 +31,7 @@ pub fn run(opt: &Generate) -> Result<()> {
     let instructions = get_instructions(&file);
 
     println!("--------");
-    println!("First instruction on file:\n{:#?}", &instructions[0]);
+    println!("Second instruction on file:\n{:#?}", &instructions[1]);
     println!("--------");
 
     let mut context = Context::new();
@@ -48,9 +51,9 @@ fn get_instructions(file: &File) -> Vec<Instruction> {
     let instructions: Instructions = serde_json::from_reader(file).expect("serde JSON failed");
 
     let unprefixed_inst: Vec<Instruction> = instructions.unprefixed.into_iter()
-        .map(| mut inst | { inst.code.insert_str(2, "00"); inst }).collect();
+        .map(|mut inst| { inst.code.insert_str(2, "00"); inst }).collect();
     let cb_inst: Vec<Instruction> = instructions.cbprefixed.into_iter()
-        .map(| mut inst | { inst.code.insert_str(2, "cb"); inst }).collect();
+        .map(|mut inst| { inst.code.insert_str(2, "cb"); inst }).collect();
 
     [unprefixed_inst, cb_inst].concat()
 }
