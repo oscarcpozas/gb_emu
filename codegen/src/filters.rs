@@ -55,3 +55,17 @@ pub fn setter(value: &Value, map: &HashMap<String, Value>) -> tera::Result<Value
     let bits = try_get_value!("setter", "bits", usize, map.get("bits").unwrap());
     Ok(to_value(&eval_setter(&value, bits)).unwrap())
 }
+
+pub fn setflag(value: &Value, map: &HashMap<String, Value>) -> tera::Result<Value> {
+    let value = try_get_value!("setflag", "value", String, value);
+    let flag = try_get_value!("setflag", "flg", String, map.get("flg").unwrap());
+    if value == "-" {
+        Ok(to_value("").unwrap())
+    } else if value == "0" {
+        Ok(to_value(format!("cpu.set_{}f(false);", flag)).unwrap())
+    } else if value == "1" {
+        Ok(to_value(format!("cpu.set_{}f(true);", flag)).unwrap())
+    } else {
+        Ok(to_value(format!("cpu.set_{}f({});", flag, value.to_lowercase())).unwrap())
+    }
+}

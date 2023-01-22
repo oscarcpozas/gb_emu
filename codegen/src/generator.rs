@@ -1,5 +1,6 @@
 use std::fs::File;
-use std::io::Write;
+use std::io::{Read, Write};
+use std::process::{Command, Stdio};
 use tera::{Tera, Context};
 use crate::{Error, filters, Generate, Result};
 use crate::models::{Instruction, Instructions};
@@ -22,6 +23,7 @@ lazy_static! {
 
         tera.register_filter("getter", filters::getter);
         tera.register_filter("setter", filters::setter);
+        tera.register_filter("setflag", filters::setflag);
         tera
     };
 }
@@ -41,8 +43,10 @@ pub fn run(opt: &Generate) -> Result<()> {
         Err(e) => return Err(Error(e.to_string()))
     };
 
+    let formatted: String = apply_fmt(&output);
+
     let mut file = File::create(&opt.output).expect("Output path not found");
-    file.write_all(output.as_bytes()).expect("Couldn't write to output");
+    file.write_all(formatted.as_bytes()).expect("Couldn't write to output");
 
     Ok(())
 }
@@ -56,4 +60,24 @@ fn get_instructions(file: &File) -> Vec<Instruction> {
         .map(|mut inst| { inst.code.insert_str(2, "cb"); inst }).collect();
 
     [unprefixed_inst, cb_inst].concat()
+}
+
+fn apply_fmt(input: &String) -> String {
+    let process = Command::new("rustfmt")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Couldn't spawn rustfmt");
+
+    process.stdin.unwrap()
+        .write_all(input.as_bytes())
+        .expect("Couldn't write to rustfmt");
+
+    let mut formatted = String::new();
+
+    process.stdout.unwrap()
+        .read_to_string(&mut formatted)
+        .expect("Couldn't read rustfmt");
+
+    formatted
 }
