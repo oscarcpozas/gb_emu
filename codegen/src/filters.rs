@@ -51,7 +51,7 @@ fn eval_setter(s: &str, b: usize) -> String {
 }
 
 pub fn setter(value: &Value, map: &HashMap<String, Value>) -> tera::Result<Value> {
-    let value = try_get_value!("setter", "value", String, value);
+    let value = try_get_value!("setter", "value", String, value).to_lowercase();
     let bits = try_get_value!("setter", "bits", usize, map.get("bits").unwrap());
     Ok(to_value(&eval_setter(&value, bits)).unwrap())
 }
