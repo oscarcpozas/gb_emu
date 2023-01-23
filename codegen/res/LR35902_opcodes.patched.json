@@ -5368,7 +5368,7 @@
       ],
       "operands": [
         {
-          "name": "a8",
+          "name": "0xff00+a8",
           "bytes": 1,
           "immediate": false
         },
@@ -5417,7 +5417,7 @@
       ],
       "operands": [
         {
-          "name": "C",
+          "name": "0xff00+C",
           "immediate": false
         },
         {
@@ -5635,7 +5635,7 @@
           "immediate": true
         },
         {
-          "name": "a8",
+          "name": "0xff00+a8",
           "bytes": 1,
           "immediate": false
         }
@@ -5684,7 +5684,7 @@
           "immediate": true
         },
         {
-          "name": "C",
+          "name": "0xff00+C",
           "immediate": false
         }
       ],
