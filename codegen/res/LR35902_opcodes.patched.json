@@ -1326,7 +1326,7 @@
       ],
       "operands": [
         {
-          "name": "C",
+          "name": "CF",
           "immediate": true
         },
         {
@@ -5224,7 +5224,7 @@
       ],
       "operands": [
         {
-          "name": "C",
+          "name": "CF",
           "immediate": true
         }
       ],
@@ -5264,7 +5264,7 @@
       ],
       "operands": [
         {
-          "name": "C",
+          "name": "CF",
           "immediate": true
         },
         {
@@ -5292,7 +5292,7 @@
       ],
       "operands": [
         {
-          "name": "C",
+          "name": "CF",
           "immediate": true
         },
         {
@@ -5664,10 +5664,10 @@
       ],
       "immediate": true,
       "flags": {
-        "Z": "Z",
-        "N": "N",
-        "H": "H",
-        "C": "C"
+        "Z": "-",
+        "N": "-",
+        "H": "-",
+        "C": "-"
       }
     },
     {
@@ -5782,17 +5782,13 @@
     },
     {
       "code": "0xF8",
-      "mnemonic": "LD",
+      "mnemonic": "LDHL",
       "bits": 16,
       "bytes": 2,
       "cycles": [
         12
       ],
       "operands": [
-        {
-          "name": "HL",
-          "immediate": true
-        },
         {
           "name": "SP",
           "increment": true,
