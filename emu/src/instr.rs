@@ -6,9 +6,6 @@
 use crate::alu;
 use crate::cpu::Cpu;
 use crate::mmu::Mmu;
-use hashbrown::HashMap;
-use lazy_static::lazy_static;
-use log::*;
 
 #[allow(unused_variables)]
 fn op_0x0000(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
@@ -601,7 +598,7 @@ fn op_0x0037(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
 
 #[allow(unused_variables)]
 fn op_0x0038(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
-    let flg = cpu.get_c();
+    let flg = cpu.get_cf();
     if flg {
         let p = mmu.get8(cpu.get_pc().wrapping_add(arg));
         let pc = cpu.get_pc().wrapping_add(alu::signed(p));
@@ -2271,7 +2268,7 @@ fn op_0x00d7(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
 
 #[allow(unused_variables)]
 fn op_0x00d8(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
-    let flg = cpu.get_c();
+    let flg = cpu.get_cf();
     if flg {
         let pc = cpu.pop(mmu);
         cpu.set_pc(pc);
@@ -2292,7 +2289,7 @@ fn op_0x00d9(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
 
 #[allow(unused_variables)]
 fn op_0x00da(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
-    let flg = cpu.get_c();
+    let flg = cpu.get_cf();
     if flg {
         let pc = mmu.get16(cpu.get_pc().wrapping_add(arg));
         cpu.set_pc(pc);
@@ -2304,7 +2301,7 @@ fn op_0x00da(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
 
 #[allow(unused_variables)]
 fn op_0x00dc(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
-    let flg = cpu.get_c();
+    let flg = cpu.get_cf();
     if flg {
         cpu.push(mmu, cpu.get_pc().wrapping_add(3));
         cpu.set_pc(mmu.get16(cpu.get_pc().wrapping_add(arg)));
@@ -2388,7 +2385,7 @@ fn op_0x00e7(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
 fn op_0x00e8(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
     let p = cpu.get_sp();
     let q = mmu.get8(cpu.get_pc().wrapping_add(arg));
-    let (v, h, c, z) = alu::add16(p, q, false);
+    let (v, h, c, z) = alu::add16e(p, q, false);
     cpu.set_sp(v);
     cpu.set_zf(false);
     cpu.set_nf(false);
@@ -2443,10 +2440,6 @@ fn op_0x00f0(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
 fn op_0x00f1(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
     let v = cpu.pop(mmu);
     cpu.set_af(v);
-    cpu.set_zf(z);
-    cpu.set_nf(n);
-    cpu.set_hf(h);
-    cpu.set_cf(c);
 
     (12, 1)
 }
@@ -2495,7 +2488,9 @@ fn op_0x00f7(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
 
 #[allow(unused_variables)]
 fn op_0x00f8(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
-    let v = cpu.get_sp();
+    let p = cpu.get_sp();
+    let q = mmu.get8(cpu.get_pc().wrapping_add(arg));
+    let (v, h, c, z) = alu::add16e(p, q, false);
     cpu.set_hl(v);
     cpu.set_zf(false);
     cpu.set_nf(false);
