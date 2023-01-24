@@ -8,9 +8,6 @@
 use crate::cpu::Cpu;
 use crate::mmu::Mmu;
 use crate::alu;
-use hashbrown::HashMap;
-use lazy_static::lazy_static;
-use log::*;
 
 {% for i in instructions %}
 #[allow(unused_variables)]
@@ -55,7 +52,7 @@ fn op_{{i.code | lower }}(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usi
 
     {%- elif i.mnemonic == "ADD" -%}
 
-        {%- if i.code == "0xE8" -%}
+        {%- if i.code == "0x00E8" -%}
             {{ macros::addsp(i=i) }}
         {%- else -%}
             {%- if i.bits == 8 -%}
