@@ -37,7 +37,7 @@ impl Cpu {
     */
     pub fn fetch_n_execute(&mut self, mmu: &mut Mmu) -> usize {
         let (inst, args) = self.fetch_op_from_mem(mmu);
-        let (time, size) = instr::decode(code, arg, self, mmu);
+        let (time, size) = instr::decode(inst, args, self, mmu);
 
         self.pc = self.get_pc().wrapping_add(args); // Update the value of the program counter.
 
@@ -58,10 +58,28 @@ impl Cpu {
         }
     }
 
-    /// Gets the value of `z` flag in the flag register.
-    pub fn get_zf(&self) -> bool {
-        self.f & 0x80 == 0x80
+    /// Switch the CPU state to halting.
+    pub fn halt(&mut self) {
+        // TODO: self.halt = true;
     }
+
+    /// Disable interrupts to this CPU.
+    pub fn disable_interrupt(&mut self) {
+        // TODO: self.ime = false;
+    }
+
+    /// Enable interrupts to this CPU.
+    pub fn enable_interrupt(&mut self) {
+        //TODO: self.ime = true;
+    }
+
+    /// Stop the CPU.
+    pub fn stop(&self) {
+        // TODO: Stop.
+    }
+
+    /// Gets the value of `z` flag in the flag register.
+    pub fn get_zf(&self) -> bool { self.f & 0x80 == 0x80 }
 
     /// Updates the value of `z` flag in the flag register.
     pub fn set_zf(&mut self, v: bool) {
@@ -73,9 +91,7 @@ impl Cpu {
     }
 
     /// Gets the value of `n` flag in the flag register.
-    pub fn get_nf(&self) -> bool {
-        self.f & 0x40 == 0x40
-    }
+    pub fn get_nf(&self) -> bool { self.f & 0x40 == 0x40 }
 
     /// Updates the value of `n` flag in the flag register.
     pub fn set_nf(&mut self, v: bool) {
@@ -213,13 +229,39 @@ impl Cpu {
     pub fn set_pc(&mut self, v: u16) { self.pc = v }
 
     /// Gets the value of the stack pointer register.
-    pub fn get_sp(&self) -> u16 {
-        self.sp
-    }
+    pub fn get_sp(&self) -> u16 { self.sp }
 
     /// Updates the value of the stack pointer register.
     pub fn set_sp(&mut self, v: u16) {
         self.sp = v
+    }
+
+    /// Pushes a 16-bit value to the stack, updating the stack pointer register.
+    pub fn push(&mut self, mmu: &mut Mmu, v: u16) {
+        let pointer = self.get_sp().wrapping_sub(2);
+        self.set_sp(pointer);
+        mmu.set16(pointer, v)
+    }
+
+    /// Pops a 16-bit value from the stack, updating the stack pointer register.
+    pub fn pop(&mut self, mmu: &mut Mmu) -> u16 {
+        let pointer = self.get_sp();
+        self.set_sp(self.get_sp().wrapping_add(2));
+        mmu.get16(pointer)
+    }
+
+    /// Fetches an opcode from the memory and returns it with its length.
+    pub fn fetch(&self, mmu: &Mmu) -> (u16, u16) {
+        let pc = self.get_pc();
+
+        let fb = mmu.get8(pc);
+
+        if fb == 0xcb {
+            let sb = mmu.get8(pc + 1);
+            (0xcb00 | sb as u16, 2)
+        } else {
+            (fb as u16, 1)
+        }
     }
 }
 
