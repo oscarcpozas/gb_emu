@@ -48,7 +48,7 @@ impl Cpu {
     Fetch an instruction from the memory.
     Program counter define the address of the instruction in the memory is incremented by the size of the instruction.
     */
-    fn fetch_op_from_mem(&mut self, mmu: &mut Mmu) -> (u16, u16) {
+    fn fetch_op_from_mem(&self, mmu: &mut Mmu) -> (u16, u16) {
         let code = mmu.get8(self.get_pc());
         if code == 0xcb {
             let sb = mmu.get8(self.get_pc() + 1);
@@ -249,19 +249,43 @@ impl Cpu {
         self.set_sp(self.get_sp().wrapping_add(2));
         mmu.get16(pointer)
     }
-
-    /// Fetches an opcode from the memory and returns it with its length.
-    pub fn fetch(&self, mmu: &Mmu) -> (u16, u16) {
-        let pc = self.get_pc();
-
-        let fb = mmu.get8(pc);
-
-        if fb == 0xcb {
-            let sb = mmu.get8(pc + 1);
-            (0xcb00 | sb as u16, 2)
-        } else {
-            (fb as u16, 1)
-        }
-    }
 }
 
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_fetch_first_op_from_mem() {
+        let mut mmu = Mmu::new();
+        let mut cpu = Cpu::new();
+
+        let (inst, args) = cpu.fetch_op_from_mem(&mut mmu);
+
+        assert_eq!(inst, 0x0000);
+        assert_eq!(args, 1);
+    }
+
+    #[test]
+    fn test_op_0x0000() {
+        let mut mmu = Mmu::new();
+        let mut cpu = Cpu::new();
+
+        let time = cpu.fetch_n_execute(&mut mmu);
+
+        assert_eq!(time, 4);
+        assert_eq!(cpu.get_pc(), 1);
+    }
+
+    #[test]
+    fn test_op_0x0001() {
+        let mut mmu = Mmu::new();
+        let mut cpu = Cpu::new();
+
+        cpu.set_bc(0x1234);
+        let time = cpu.fetch_n_execute(&mut mmu);
+
+        assert_eq!(time, 12);
+        assert_eq!(cpu.get_pc(), 1);
+    }
+}
