@@ -1,6 +1,6 @@
 Trying to implement a GameBoy emulator in Rust. The goal is to have [100% accuracy with the original hardware](https://mgba.io/2017/04/30/emulation-accuracy).
 
-This is still a work in progress, even the notes that I use in the project are [also public](https://www.notion.so/oscarcpozas/Emulando-la-Gameboy-en-Rust-8919f3bae14947ce9ff4111986a27e29?pvs=4).
+This is still a work in progress, even the notes that I use in the project are [also public](https://www.notion.so/oscarcpozas/Emulando-la-Gameboy-en-Rust-8919f3bae14947ce9ff4111986a27e29?pvs=4). (Because my native language is Spanish, these notes are in this language)
 
 ## Instruction to run the project
 
