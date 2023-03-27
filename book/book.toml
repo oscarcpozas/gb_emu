@@ -1,6 +1,6 @@
 [book]
 authors = ["Óscar Caballero"]
-language = "en"
+language = "es"
 multilingual = false
 src = "src"
-title = "¿Como emular la Gameboy en rust?"
+title = "Emulando la Gameboy en Rust"
