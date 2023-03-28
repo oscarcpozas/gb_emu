@@ -1,7 +1,7 @@
 # Introduccion
 
 > Lo primero de todo. Si has llegado hasta aquí sin saber cómo, esta es la documentación/anotaciones de mi proyecto 
-> público en Github para emular la Gameboy en Rust.
+> público en [Github para emular la Gameboy en Rust](https://github.com/oscarcpozas/gb_emu).
 
 Creo que una buena forma de comprender cómo es el funcionamiento de un ordenador y sus componentes desde un punto de vista
 de software/coding es tratando de emular sus comportamientos y relaciones. Es por ello que he elegido una de las consolas 
@@ -21,4 +21,3 @@ los ordenadores actuales hace que podamos resolver este problema en casi cualqui
 Además de que lo aprendido en este proyecto podría ser de utilidad para futuros emuladores que quiera hacer donde si 
 deba tener más en cuenta el rendimiento. También es un lenguaje con una comunidad sólida en la que poder apoyarme 
 en el camino.
-
