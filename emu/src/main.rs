@@ -1,10 +1,10 @@
 mod emu;
 mod cpu;
-mod mmu;
 mod instr;
 mod alu;
 mod gui;
 mod io;
+mod mmu;
 
 use log::*;
 use std::fs::File;

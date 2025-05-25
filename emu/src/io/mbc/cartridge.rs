@@ -1,12 +1,14 @@
 use std::fmt;
 use log::info;
-use crate::io::mbc::mbc::MbcType;
+use crate::io::mbc::mbc;
+use crate::io::mbc::mbc::Mbc;
+use crate::mmu::{MemHandler, MemRead, MemWrite};
 
 pub struct Cartridge {
     title: String,
     cgb: Cgb,
     sgb: bool,
-    mbc: MbcType,
+    mbc: Box<dyn Mbc>,
     rom_size: u8,
     ram_size: u8,
 }
@@ -24,10 +26,24 @@ impl Cartridge {
             title: parse_title(&rom[0x134..0x144]),
             cgb: parse_cgb(&rom[0x143]),
             sgb: rom[0x146] == 0x03,
-            mbc: MbcType::new(rom[0x147], rom.clone()),
+            mbc: mbc::new(rom[0x147], rom.clone()),
             rom_size: rom[0x148],
             ram_size: rom[0x149],
         }
+    }
+
+    pub fn show_info(&self) {
+        info!("{}", self);
+    }
+}
+
+impl MemHandler for Cartridge {
+    fn on_read(&self, addr: u16) -> MemRead {
+        self.mbc.on_read(addr)
+    }
+
+    fn on_write(&mut self, addr: u16, value: u8) -> MemWrite {
+        self.mbc.on_write(addr, value)
     }
 }
 
