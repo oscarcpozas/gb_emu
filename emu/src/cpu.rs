@@ -1,5 +1,5 @@
-use crate::mmu::Mmu;
 use crate::instr;
+use crate::mmu::Mmu;
 
 pub struct Cpu {
     a: u8, // accumulator
@@ -11,11 +11,10 @@ pub struct Cpu {
     h: u8,
     l: u8,
     pc: u16,
-    sp: u16
+    sp: u16,
 }
 
 impl Cpu {
-
     pub fn new() -> Self {
         Self {
             a: 0,
@@ -27,7 +26,7 @@ impl Cpu {
             h: 0,
             l: 0,
             pc: 0,
-            sp: 0
+            sp: 0,
         }
     }
 
@@ -79,7 +78,9 @@ impl Cpu {
     }
 
     /// Gets the value of `z` flag in the flag register.
-    pub fn get_zf(&self) -> bool { self.f & 0x80 == 0x80 }
+    pub fn get_zf(&self) -> bool {
+        self.f & 0x80 == 0x80
+    }
 
     /// Updates the value of `z` flag in the flag register.
     pub fn set_zf(&mut self, v: bool) {
@@ -91,7 +92,9 @@ impl Cpu {
     }
 
     /// Gets the value of `n` flag in the flag register.
-    pub fn get_nf(&self) -> bool { self.f & 0x40 == 0x40 }
+    pub fn get_nf(&self) -> bool {
+        self.f & 0x40 == 0x40
+    }
 
     /// Updates the value of `n` flag in the flag register.
     pub fn set_nf(&mut self, v: bool) {
@@ -190,46 +193,74 @@ impl Cpu {
     }
 
     /// Gets the value of `a` register.
-    pub fn get_a(&self) -> u8 { self.a }
+    pub fn get_a(&self) -> u8 {
+        self.a
+    }
 
     /// Gets the value of `b` register.
-    pub fn get_b(&self) -> u8 { self.b }
+    pub fn get_b(&self) -> u8 {
+        self.b
+    }
 
     /// Gets the value of `c` register.
-    pub fn get_c(&self) -> u8 { self.c }
+    pub fn get_c(&self) -> u8 {
+        self.c
+    }
 
     /// Gets the value of `d` register.
-    pub fn get_d(&self) -> u8 { self.d }
+    pub fn get_d(&self) -> u8 {
+        self.d
+    }
 
     /// Gets the value of `e` register.
-    pub fn get_e(&self) -> u8 { self.e }
+    pub fn get_e(&self) -> u8 {
+        self.e
+    }
 
     /// Gets the value of `h` register.
-    pub fn get_h(&self) -> u8 { self.h }
+    pub fn get_h(&self) -> u8 {
+        self.h
+    }
 
     /// Gets the value of `l` register.
-    pub fn get_l(&self) -> u8 { self.l }
+    pub fn get_l(&self) -> u8 {
+        self.l
+    }
 
     /// Gets the value of `a` and `f` register as a single 16-bit register.
-    pub fn get_af(&self) -> u16 { (self.a as u16) << 8 | self.f as u16 }
+    pub fn get_af(&self) -> u16 {
+        (self.a as u16) << 8 | self.f as u16
+    }
 
     /// Gets the value of `b` and `c` register as a single 16-bit register.
-    pub fn get_bc(&self) -> u16 { (self.b as u16) << 8 | self.c as u16 }
+    pub fn get_bc(&self) -> u16 {
+        (self.b as u16) << 8 | self.c as u16
+    }
 
     /// Gets the value of `d` and `e` register as a single 16-bit register.
-    pub fn get_de(&self) -> u16 { (self.d as u16) << 8 | self.e as u16 }
+    pub fn get_de(&self) -> u16 {
+        (self.d as u16) << 8 | self.e as u16
+    }
 
     /// Gets the value of `h` and `l` register as a single 16-bit register.
-    pub fn get_hl(&self) -> u16 { (self.h as u16) << 8 | self.l as u16 }
+    pub fn get_hl(&self) -> u16 {
+        (self.h as u16) << 8 | self.l as u16
+    }
 
     /// Gets the value of the program counter.
-    pub fn get_pc(&self) -> u16 { self.pc }
+    pub fn get_pc(&self) -> u16 {
+        self.pc
+    }
 
     /// Updates the value of the program counter.
-    pub fn set_pc(&mut self, v: u16) { self.pc = v }
+    pub fn set_pc(&mut self, v: u16) {
+        self.pc = v
+    }
 
     /// Gets the value of the stack pointer register.
-    pub fn get_sp(&self) -> u16 { self.sp }
+    pub fn get_sp(&self) -> u16 {
+        self.sp
+    }
 
     /// Updates the value of the stack pointer register.
     pub fn set_sp(&mut self, v: u16) {

@@ -1,8 +1,8 @@
-use std::fmt;
-use log::info;
 use crate::io::mbc::mbc;
 use crate::io::mbc::mbc::Mbc;
 use crate::mmu::{MemHandler, MemRead, MemWrite};
+use log::info;
+use std::fmt;
 
 pub struct Cartridge {
     title: String,
@@ -91,6 +91,6 @@ fn parse_cgb(cgb_flag: &u8) -> Cgb {
     match cgb_flag {
         0x80 => Cgb::Cgb,
         0xC0 => Cgb::CgbOnly,
-        _ => Cgb::Unknown
+        _ => Cgb::Unknown,
     }
 }

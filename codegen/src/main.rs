@@ -1,10 +1,10 @@
 extern crate env_logger;
-extern crate structopt;
 extern crate serde_json;
+extern crate structopt;
 
+mod filters;
 mod generator;
 mod models;
-mod filters;
 
 use std::path::PathBuf;
 use structopt::StructOpt;

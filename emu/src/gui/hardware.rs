@@ -1,7 +1,7 @@
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use std::sync::atomic::{AtomicBool, Ordering};
 use crate::gui::window::{GameBoyKey, GUI};
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Clone)]
 pub struct Hardware {
@@ -19,9 +19,15 @@ impl Hardware {
         }
     }
 
-    pub fn get_gui_is_alive(&self) -> bool { !self.escape.load(Ordering::Relaxed) }
+    pub fn get_gui_is_alive(&self) -> bool {
+        !self.escape.load(Ordering::Relaxed)
+    }
 
-    pub fn get_vram(&self) -> Arc<Mutex<Vec<u32>>> { self.vram.clone() }
+    pub fn get_vram(&self) -> Arc<Mutex<Vec<u32>>> {
+        self.vram.clone()
+    }
 
-    pub fn get_keys_states(&self) -> Arc<Mutex<HashMap<GameBoyKey, bool>>> { self.keys_states.clone() }
+    pub fn get_keys_states(&self) -> Arc<Mutex<HashMap<GameBoyKey, bool>>> {
+        self.keys_states.clone()
+    }
 }

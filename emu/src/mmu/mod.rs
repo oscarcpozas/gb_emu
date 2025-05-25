@@ -35,8 +35,6 @@ pub trait MemHandler {
     }
 }
 
-use std::cell::RefCell;
-use std::cmp::min;
 use std::collections::HashMap;
 use std::rc::Rc;
 

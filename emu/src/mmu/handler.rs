@@ -1,6 +1,6 @@
+use crate::mmu::{MemHandler, MemRead, MemWrite};
 use std::cell::RefCell;
 use std::rc::Rc;
-use crate::mmu::{MemHandler, MemRead, MemWrite};
 
 /// A wrapper for RefCell<T> that implements MemHandler
 /// This allows us to use RefCell<T> as a memory handler
@@ -27,4 +27,3 @@ impl<T: MemHandler + 'static + ?Sized> MemHandler for RefCellMemHandler<T> {
         self.inner.borrow_mut().on_write(addr, value)
     }
 }
-

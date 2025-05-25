@@ -1,7 +1,5 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::sync::{Arc, Mutex};
 use crate::mmu::{MemHandler, MemRead, MemWrite};
+use std::sync::{Arc, Mutex};
 
 // LCD Control Register (0xFF40)
 const LCDC_BG_ENABLE: u8 = 0x01;
@@ -202,8 +200,16 @@ impl Ppu {
 
     /// Render the background for the current scanline
     fn render_background(&mut self) {
-        let tile_map_addr = if self.lcdc & LCDC_BG_MAP != 0 { 0x1C00 } else { 0x1800 };
-        let tile_data_addr = if self.lcdc & LCDC_TILE_DATA != 0 { 0x0000 } else { 0x1000 };
+        let tile_map_addr = if self.lcdc & LCDC_BG_MAP != 0 {
+            0x1C00
+        } else {
+            0x1800
+        };
+        let tile_data_addr = if self.lcdc & LCDC_TILE_DATA != 0 {
+            0x0000
+        } else {
+            0x1000
+        };
         let signed_addressing = (self.lcdc & LCDC_TILE_DATA) == 0;
 
         let y = (self.ly.wrapping_add(self.scy)) as usize;
@@ -235,11 +241,12 @@ impl Ppu {
             let tile_data_high = self.vram[tile_addr + tile_sub_y * 2 + 1];
 
             // Get color bit
-            let color_bit = ((tile_data_high >> tile_sub_x) & 0x01) << 1 | ((tile_data_low >> tile_sub_x) & 0x01);
-            
+            let color_bit = ((tile_data_high >> tile_sub_x) & 0x01) << 1
+                | ((tile_data_low >> tile_sub_x) & 0x01);
+
             // Get color from palette
             let color = (self.bgp >> (color_bit * 2)) & 0x03;
-            
+
             // Set pixel in frame buffer
             let pixel_addr = self.ly as usize * SCREEN_WIDTH + x;
             frame_buffer[pixel_addr] = match color {
@@ -288,43 +295,43 @@ impl MemHandler for Ppu {
         match addr {
             // VRAM (0x8000-0x9FFF)
             0x8000..=0x9FFF => MemRead::Replace(self.get_vram(addr)),
-            
+
             // OAM (0xFE00-0xFE9F)
             0xFE00..=0xFE9F => MemRead::Replace(self.get_oam(addr)),
-            
+
             // LCD Control Register (0xFF40)
             0xFF40 => MemRead::Replace(self.lcdc),
-            
+
             // LCD Status Register (0xFF41)
             0xFF41 => MemRead::Replace(self.stat),
-            
+
             // Scroll Y (0xFF42)
             0xFF42 => MemRead::Replace(self.scy),
-            
+
             // Scroll X (0xFF43)
             0xFF43 => MemRead::Replace(self.scx),
-            
+
             // LCD Y Coordinate (0xFF44)
             0xFF44 => MemRead::Replace(self.ly),
-            
+
             // LY Compare (0xFF45)
             0xFF45 => MemRead::Replace(self.lyc),
-            
+
             // Background Palette (0xFF47)
             0xFF47 => MemRead::Replace(self.bgp),
-            
+
             // Object Palette 0 (0xFF48)
             0xFF48 => MemRead::Replace(self.obp0),
-            
+
             // Object Palette 1 (0xFF49)
             0xFF49 => MemRead::Replace(self.obp1),
-            
+
             // Window Y Position (0xFF4A)
             0xFF4A => MemRead::Replace(self.wy),
-            
+
             // Window X Position minus 7 (0xFF4B)
             0xFF4B => MemRead::Replace(self.wx),
-            
+
             // Not a PPU register
             _ => MemRead::PassThrough,
         }
@@ -337,77 +344,77 @@ impl MemHandler for Ppu {
                 self.set_vram(addr, value);
                 MemWrite::Block
             }
-            
+
             // OAM (0xFE00-0xFE9F)
             0xFE00..=0xFE9F => {
                 self.set_oam(addr, value);
                 MemWrite::Block
             }
-            
+
             // LCD Control Register (0xFF40)
             0xFF40 => {
                 self.lcdc = value;
                 MemWrite::Block
             }
-            
+
             // LCD Status Register (0xFF41)
             0xFF41 => {
                 // Only bits 3-6 are writable
                 self.stat = (self.stat & 0x07) | (value & 0xF8);
                 MemWrite::Block
             }
-            
+
             // Scroll Y (0xFF42)
             0xFF42 => {
                 self.scy = value;
                 MemWrite::Block
             }
-            
+
             // Scroll X (0xFF43)
             0xFF43 => {
                 self.scx = value;
                 MemWrite::Block
             }
-            
+
             // LCD Y Coordinate (0xFF44) - read-only
             0xFF44 => MemWrite::Block,
-            
+
             // LY Compare (0xFF45)
             0xFF45 => {
                 self.lyc = value;
                 MemWrite::Block
             }
-            
+
             // Background Palette (0xFF47)
             0xFF47 => {
                 self.bgp = value;
                 MemWrite::Block
             }
-            
+
             // Object Palette 0 (0xFF48)
             0xFF48 => {
                 self.obp0 = value;
                 MemWrite::Block
             }
-            
+
             // Object Palette 1 (0xFF49)
             0xFF49 => {
                 self.obp1 = value;
                 MemWrite::Block
             }
-            
+
             // Window Y Position (0xFF4A)
             0xFF4A => {
                 self.wy = value;
                 MemWrite::Block
             }
-            
+
             // Window X Position minus 7 (0xFF4B)
             0xFF4B => {
                 self.wx = value;
                 MemWrite::Block
             }
-            
+
             // Not a PPU register
             _ => MemWrite::PassThrough,
         }

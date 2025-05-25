@@ -1,8 +1,8 @@
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Duration;
 use minifb::{Scale, Window, WindowOptions};
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 const WINDOW_WIDTH: usize = 160;
 const WINDOW_HEIGHT: usize = 144;
@@ -17,7 +17,7 @@ pub enum GameBoyKey {
     A,
     B,
     Select,
-    Start
+    Start,
 }
 
 #[derive(Debug)]
@@ -35,11 +35,10 @@ impl GUI {
             scale: Scale::X4,
             ..WindowOptions::default()
         };
-        let window =
-            match Window::new(WINDOW_TITLE, WINDOW_WIDTH, WINDOW_HEIGHT, window_options) {
-                Ok(win) => win,
-                Err(err) => panic!("Error creating window {}", err)
-            };
+        let window = match Window::new(WINDOW_TITLE, WINDOW_WIDTH, WINDOW_HEIGHT, window_options) {
+            Ok(win) => win,
+            Err(err) => panic!("Error creating window {}", err),
+        };
 
         GUI {
             window,
@@ -57,7 +56,9 @@ impl GUI {
         }
     }
 
-    pub fn is_alive(&self) -> bool { return self.window.is_open() }
+    pub fn is_alive(&self) -> bool {
+        return self.window.is_open();
+    }
 
     fn new_key_states() -> HashMap<GameBoyKey, bool> {
         let mut keys_states = HashMap::new();
@@ -74,7 +75,9 @@ impl GUI {
 
     fn update_vram(&mut self) {
         let vram = self.vram.lock().unwrap().clone();
-        self.window.update_with_buffer(&vram, WINDOW_WIDTH, WINDOW_HEIGHT).unwrap();
+        self.window
+            .update_with_buffer(&vram, WINDOW_WIDTH, WINDOW_HEIGHT)
+            .unwrap();
     }
 
     fn get_key_update(&mut self) {

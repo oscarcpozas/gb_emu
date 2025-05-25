@@ -1,15 +1,14 @@
+use crate::cpu::Cpu;
+use crate::gui::hardware::Hardware;
+use crate::io::boot::BootRom;
+use crate::io::gpu::ppu::Ppu;
+use crate::io::mbc::cartridge::Cartridge;
+use crate::mmu::{Mmu, RefCellMemHandler};
+use log::info;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
-use log::{info, debug};
-use crate::cpu::Cpu;
-use crate::mmu::{MemHandler, Mmu, RefCellMemHandler};
-use crate::gui::window::GUI;
-use crate::gui::hardware::Hardware;
-use crate::io::mbc::cartridge::Cartridge;
-use crate::io::boot::BootRom;
-use crate::io::gpu::ppu::Ppu;
 
 // Game Boy CPU clock speed: 4.194304 MHz
 const CPU_CLOCK_HZ: u64 = 4_194_304;
