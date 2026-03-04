@@ -81,6 +81,11 @@ impl GUI {
     }
 
     fn get_key_update(&mut self) {
+        // Reset all keys to not pressed
+        for v in self.keys_states.lock().unwrap().values_mut() {
+            *v = false;
+        }
+
         for key in self.window.get_keys() {
             let gb_key = match key {
                 minifb::Key::Right => GameBoyKey::Right,

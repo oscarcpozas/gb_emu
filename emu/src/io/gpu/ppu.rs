@@ -1,3 +1,4 @@
+use crate::io::interrupt::{INT_LCD_STAT, INT_VBLANK};
 use crate::mmu::{MemHandler, MemRead, MemWrite};
 use std::sync::{Arc, Mutex};
 
@@ -94,86 +95,99 @@ impl Ppu {
         }
     }
 
-    /// Update the PPU state
-    /// Returns the number of cycles that were processed
-    pub fn update(&mut self, cycles: usize) -> usize {
+    /// Update the PPU state.
+    /// Returns a bitmask of interrupts to be requested (INT_VBLANK, INT_LCD_STAT).
+    pub fn update(&mut self, cycles: usize) -> u8 {
+        let mut interrupts: u8 = 0;
+
         // If LCD is disabled, reset and return
         if self.lcdc & LCDC_DISPLAY_ENABLE == 0 {
             self.mode = MODE_HBLANK;
             self.ly = 0;
             self.mode_cycles = 0;
-            return cycles;
+            return 0;
         }
 
         self.mode_cycles += cycles;
 
         match self.mode {
             MODE_OAM => {
-                // OAM scan (80 cycles)
                 if self.mode_cycles >= 80 {
                     self.mode_cycles -= 80;
                     self.mode = MODE_TRANSFER;
-                    // Update STAT register
                     self.stat = (self.stat & 0xFC) | MODE_TRANSFER;
                 }
             }
             MODE_TRANSFER => {
-                // Pixel transfer (172 cycles)
                 if self.mode_cycles >= 172 {
                     self.mode_cycles -= 172;
                     self.mode = MODE_HBLANK;
-                    // Update STAT register
                     self.stat = (self.stat & 0xFC) | MODE_HBLANK;
-
-                    // Render scanline
                     self.render_scanline();
+
+                    // STAT interrupt on HBlank
+                    if self.stat & STAT_HBLANK_INT != 0 {
+                        interrupts |= INT_LCD_STAT;
+                    }
                 }
             }
             MODE_HBLANK => {
-                // H-Blank (204 cycles)
                 if self.mode_cycles >= 204 {
                     self.mode_cycles -= 204;
                     self.ly += 1;
 
                     if self.ly == 144 {
-                        // Enter V-Blank
                         self.mode = MODE_VBLANK;
-                        // Update STAT register
                         self.stat = (self.stat & 0xFC) | MODE_VBLANK;
+                        // VBlank interrupt
+                        interrupts |= INT_VBLANK;
+                        // STAT interrupt on VBlank
+                        if self.stat & STAT_VBLANK_INT != 0 {
+                            interrupts |= INT_LCD_STAT;
+                        }
                     } else {
-                        // Start next scanline
                         self.mode = MODE_OAM;
-                        // Update STAT register
                         self.stat = (self.stat & 0xFC) | MODE_OAM;
+                        // STAT interrupt on OAM
+                        if self.stat & STAT_OAM_INT != 0 {
+                            interrupts |= INT_LCD_STAT;
+                        }
                     }
                 }
             }
             MODE_VBLANK => {
-                // V-Blank (4560 cycles = 10 scanlines * 456 cycles)
                 if self.mode_cycles >= 456 {
                     self.mode_cycles -= 456;
                     self.ly += 1;
 
                     if self.ly > 153 {
-                        // End of V-Blank, start next frame
                         self.ly = 0;
                         self.mode = MODE_OAM;
-                        // Update STAT register
                         self.stat = (self.stat & 0xFC) | MODE_OAM;
+                        // STAT interrupt on OAM
+                        if self.stat & STAT_OAM_INT != 0 {
+                            interrupts |= INT_LCD_STAT;
+                        }
                     }
                 }
             }
             _ => unreachable!("Invalid PPU mode"),
         }
 
-        // Update LYC=LY flag
+        // Update LYC=LY flag and trigger STAT interrupt if enabled
         if self.ly == self.lyc {
-            self.stat |= STAT_LYC_EQUAL;
+            if self.stat & STAT_LYC_EQUAL == 0 {
+                // LY just matched LYC
+                self.stat |= STAT_LYC_EQUAL;
+                if self.stat & STAT_LYC_INT != 0 {
+                    interrupts |= INT_LCD_STAT;
+                }
+            }
         } else {
             self.stat &= !STAT_LYC_EQUAL;
         }
 
-        cycles
+        interrupts
     }
 
     /// Render a single scanline

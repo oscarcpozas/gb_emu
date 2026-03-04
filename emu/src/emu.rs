@@ -2,6 +2,7 @@ use crate::cpu::Cpu;
 use crate::gui::hardware::Hardware;
 use crate::io::boot::BootRom;
 use crate::io::gpu::ppu::Ppu;
+use crate::io::interrupt::Interrupt;
 use crate::io::mbc::cartridge::Cartridge;
 use crate::mmu::{Mmu, RefCellMemHandler};
 use log::info;
@@ -23,6 +24,7 @@ pub struct Emu {
     cartridge: Rc<RefCell<Cartridge>>,
     boot_rom: Rc<RefCell<BootRom>>,
     ppu: Rc<RefCell<Ppu>>,
+    interrupt: Rc<RefCell<Interrupt>>,
     cycles: usize,
 }
 
@@ -63,10 +65,14 @@ impl Emu {
         // Create the PPU
         let ppu = Rc::new(RefCell::new(Ppu::new(vram_buffer)));
 
+        // Create the interrupt controller
+        let interrupt = Rc::new(RefCell::new(Interrupt::new()));
+
         // Create memory handlers
         let cartridge_handler = Rc::new(RefCellMemHandler::new(cartridge.clone()));
         let boot_rom_handler = Rc::new(RefCellMemHandler::new(boot_rom.clone()));
         let ppu_handler = Rc::new(RefCellMemHandler::new(ppu.clone()));
+        let interrupt_handler = Rc::new(RefCellMemHandler::new(interrupt.clone()));
 
         // Add memory handlers
         mmu.add_handler((0x0000, 0x7FFF), cartridge_handler.clone());
@@ -75,6 +81,8 @@ impl Emu {
         mmu.add_handler((0x8000, 0x9FFF), ppu_handler.clone());
         mmu.add_handler((0xFE00, 0xFE9F), ppu_handler.clone());
         mmu.add_handler((0xFF40, 0xFF4B), ppu_handler.clone());
+        mmu.add_handler((0xFF0F, 0xFF0F), interrupt_handler.clone());
+        mmu.add_handler((0xFFFF, 0xFFFF), interrupt_handler.clone());
 
         Self {
             cpu,
@@ -82,6 +90,7 @@ impl Emu {
             cartridge,
             boot_rom,
             ppu,
+            interrupt,
             cycles: 0,
         }
     }
@@ -89,20 +98,26 @@ impl Emu {
     fn run_frame(&mut self) {
         let mut cycles_this_frame = 0;
 
-        // Run CPU cycles until we've reached the target for this frame
         while cycles_this_frame < CYCLES_PER_FRAME {
-            // Execute one CPU instruction
             let cycles = self.step();
             cycles_this_frame += cycles;
             self.cycles += cycles;
-
-            // Update PPU
-            self.ppu.borrow_mut().update(cycles);
         }
     }
 
     fn step(&mut self) -> usize {
-        // Execute one CPU instruction and return the number of cycles it took
-        self.cpu.fetch_n_execute(&mut self.mmu)
+        // Execute one CPU instruction
+        let cycles = self.cpu.fetch_n_execute(&mut self.mmu);
+
+        // Update PPU and collect any interrupt requests
+        let ppu_interrupts = self.ppu.borrow_mut().update(cycles);
+        if ppu_interrupts != 0 {
+            self.interrupt.borrow_mut().request(ppu_interrupts);
+        }
+
+        // Dispatch pending interrupts to the CPU
+        let int_cycles = self.interrupt.borrow_mut().dispatch(&mut self.cpu, &mut self.mmu);
+
+        cycles + int_cycles
     }
 }

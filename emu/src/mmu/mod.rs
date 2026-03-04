@@ -80,37 +80,23 @@ impl Mmu {
         self.ram[addr as usize]
     }
 
-    pub fn set8(&mut self, mut addr: u16, v: u8) {
+    pub fn set8(&mut self, mut addr: u16, mut v: u8) {
         if let Some(handlers) = self.handlers.get(&addr) {
             for handler in handlers.iter() {
-                match handler.on_read(addr) {
-                    MemRead::Replace(_) => {
-                        // This address is handled by a memory handler
-                        // We need to call on_write for all handlers
-                        for handler in handlers.iter() {
-                            // Use the on_write_shared method which can be called on a shared reference
-                            match handler.on_write_shared(addr, v) {
-                                MemWrite::Replace(value) => {
-                                    // Replace the value and continue
-                                    let v = value;
-                                }
-                                MemWrite::PassThrough => {
-                                    // Continue with the original value
-                                }
-                                MemWrite::Block => {
-                                    // Block the write and return
-                                    return;
-                                }
-                            }
-                        }
+                match handler.on_write_shared(addr, v) {
+                    MemWrite::Replace(value) => {
+                        v = value;
                     }
-                    MemRead::PassThrough => {}
+                    MemWrite::PassThrough => {}
+                    MemWrite::Block => {
+                        return;
+                    }
                 }
             }
         }
 
         if self.is_echo_ram(addr) {
-            addr -= 0x2000; // Echo RAM sector, it's same content that C000-DDFF sector
+            addr -= 0x2000;
         }
         self.ram[addr as usize] = v;
     }

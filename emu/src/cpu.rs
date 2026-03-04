@@ -12,6 +12,12 @@ pub struct Cpu {
     l: u8,
     pc: u16,
     sp: u16,
+    /// Interrupt Master Enable flag
+    pub ime: bool,
+    /// Whether CPU is halted waiting for an interrupt
+    pub halted: bool,
+    /// Pending IME enable (set after EI — takes effect after next instruction)
+    ime_pending: bool,
 }
 
 impl Cpu {
@@ -27,6 +33,9 @@ impl Cpu {
             l: 0,
             pc: 0,
             sp: 0,
+            ime: false,
+            halted: false,
+            ime_pending: false,
         }
     }
 
@@ -35,6 +44,17 @@ impl Cpu {
     Function fetches an instruction code from the memory, decodes it, and updates the CPU/memory state accordingly.
     */
     pub fn fetch_n_execute(&mut self, mmu: &mut Mmu) -> usize {
+        // If halted, burn 4 cycles doing nothing until an interrupt wakes us
+        if self.halted {
+            return 4;
+        }
+
+        // Apply pending IME enable (EI takes effect after the next instruction)
+        if self.ime_pending {
+            self.ime_pending = false;
+            self.ime = true;
+        }
+
         let (inst, args) = self.fetch_op_from_mem(mmu);
         let (time, size) = instr::decode(inst, args, self, mmu);
 
@@ -59,22 +79,23 @@ impl Cpu {
 
     /// Switch the CPU state to halting.
     pub fn halt(&mut self) {
-        // TODO: self.halt = true;
+        self.halted = true;
     }
 
-    /// Disable interrupts to this CPU.
+    /// Disable interrupts (DI instruction).
     pub fn disable_interrupt(&mut self) {
-        // TODO: self.ime = false;
+        self.ime = false;
+        self.ime_pending = false;
     }
 
-    /// Enable interrupts to this CPU.
+    /// Enable interrupts (EI instruction) — takes effect after the next instruction.
     pub fn enable_interrupt(&mut self) {
-        //TODO: self.ime = true;
+        self.ime_pending = true;
     }
 
-    /// Stop the CPU.
-    pub fn stop(&self) {
-        // TODO: Stop.
+    /// Stop the CPU (low-power mode — treat as halt for now).
+    pub fn stop(&mut self) {
+        self.halted = true;
     }
 
     /// Gets the value of `z` flag in the flag register.
