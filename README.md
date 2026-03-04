@@ -2,6 +2,10 @@ Trying to implement a GameBoy emulator in Rust. The goal is to have [100% accura
 
 Along with the project [I'm preparing a page](https://oscarcpozas.github.io/gb_emu) with the operation of each of the pieces and notes with interesting aspects that I've encountered along the way. (Because my native language is **Spanish**, these notes are in this language)
 
+### How to run the emu?
+
+```cargo run --bin emu -- ./misc/tetris.gb```
+
 ### Supported by
 
 [<img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.png" alt="JetBrains Logo (Main) logo." width="180">](https://jb.gg/OpenSourceSupport)

@@ -27,7 +27,7 @@ pub struct Emu {
 }
 
 impl Emu {
-    pub fn run(rom: &[u8], hardware: Hardware) {
+    pub fn run(rom: Vec<u8>, hardware: Hardware) {
         let mut emu = Emu::new(rom, hardware.get_vram());
         emu.cartridge.borrow().show_info();
 
@@ -50,12 +50,12 @@ impl Emu {
         }
     }
 
-    fn new(rom: &[u8], vram_buffer: std::sync::Arc<std::sync::Mutex<Vec<u32>>>) -> Self {
+    fn new(rom: Vec<u8>, vram_buffer: std::sync::Arc<std::sync::Mutex<Vec<u32>>>) -> Self {
         let cpu = Cpu::new();
         let mut mmu = Mmu::new();
 
         // Create the cartridge
-        let cartridge = Rc::new(RefCell::new(Cartridge::new(rom.to_vec())));
+        let cartridge = Rc::new(RefCell::new(Cartridge::new(rom)));
 
         // Create the boot ROM
         let boot_rom = Rc::new(RefCell::new(BootRom::new()));
