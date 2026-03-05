@@ -67,6 +67,14 @@ fn eval_setter(operand: &str, bits: usize, immediate: bool) -> String {
     }
 }
 
+/// Convert an RST operand name like "00H" or "38H" to a Rust u16 literal "0x0000u16".
+pub fn rst_vector(value: &Value, _map: &HashMap<String, Value>) -> tera::Result<Value> {
+    let s = try_get_value!("rst_vector", "value", String, value);
+    let hex_str = s.trim_end_matches(|c: char| c == 'H' || c == 'h');
+    let val = u16::from_str_radix(hex_str, 16).unwrap_or(0);
+    Ok(to_value(format!("0x{:04X}u16", val)).unwrap())
+}
+
 pub fn setflag(value: &Value, map: &HashMap<String, Value>) -> tera::Result<Value> {
     let value = try_get_value!("setflag", "value", String, value);
     let flag = try_get_value!("setflag", "flg", String, map.get("flg").unwrap());

@@ -32,7 +32,7 @@ fn op_{{i.code | lower }}(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usi
         {{ macros::dec16(i=i) }}
         {%- endif -%}
 
-    {%- elif i.mnemonic == "LD" -%}
+    {%- elif i.mnemonic == "LD" or i.mnemonic == "LDH" -%}
 
         {{ macros::ld(i=i) }}
 
@@ -236,7 +236,7 @@ fn op_{{i.code | lower }}(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usi
     {{ i.flags.H | setflag(flg="h") }}
     {{ i.flags.C | setflag(flg="c") }}
 
-    ({{i.cycles[0]}}, {{i.bytes}})
+    ({{i.cycles | last}}, {{i.bytes}})
 }
 {% endfor %}
 

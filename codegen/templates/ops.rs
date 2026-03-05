@@ -320,8 +320,8 @@ return ({{ i.cycles[0] }}, 0)
 {% endmacro %}
 
 {% macro rst(i) %}
-cpu.push(mmu, cpu.get_pc().wrapping_add({{ i.bytes }}));
-cpu.set_pc({{ i.code }}u16.wrapping_sub({{i.bytes}}));
+cpu.push(mmu, cpu.get_pc().wrapping_add(1));
+cpu.set_pc({{ i.operands[0].name | rst_vector }}.wrapping_sub(1));
 {% endmacro %}
 
 {% macro ret(i) %}

@@ -24,6 +24,7 @@ lazy_static! {
         tera.register_filter("getter", filters::getter);
         tera.register_filter("setter", filters::setter);
         tera.register_filter("setflag", filters::setflag);
+        tera.register_filter("rst_vector", filters::rst_vector);
         tera
     };
 }
@@ -60,6 +61,15 @@ fn get_instructions(file: &File) -> Vec<Instruction> {
         .into_iter()
         .map(|mut inst| {
             inst.code.insert_str(2, "00");
+            // Normalise LD with post-increment/decrement operands to LDI/LDD so the
+            // template emits the required HL modification.
+            if inst.mnemonic == "LD" {
+                if inst.operands.iter().any(|op| op.increment) {
+                    inst.mnemonic = "LDI".to_string();
+                } else if inst.operands.iter().any(|op| op.decrement) {
+                    inst.mnemonic = "LDD".to_string();
+                }
+            }
             inst
         })
         .collect();

@@ -342,7 +342,7 @@ fn op_0x0020(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
         return (12, 2);
     }
 
-    (12, 2)
+    (8, 2)
 }
 
 #[allow(unused_variables)]
@@ -357,7 +357,9 @@ fn op_0x0021(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
 fn op_0x0022(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
     let v = cpu.get_a();
     mmu.set8(cpu.get_hl(), v);
+
     cpu.set_hl(cpu.get_hl().wrapping_add(1));
+
     (8, 1)
 }
 
@@ -441,7 +443,7 @@ fn op_0x0028(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
         return (12, 2);
     }
 
-    (12, 2)
+    (8, 2)
 }
 
 #[allow(unused_variables)]
@@ -462,7 +464,9 @@ fn op_0x0029(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
 fn op_0x002a(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
     let v = mmu.get8(cpu.get_hl());
     cpu.set_a(v);
+
     cpu.set_hl(cpu.get_hl().wrapping_add(1));
+
     (8, 1)
 }
 
@@ -526,7 +530,7 @@ fn op_0x0030(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
         return (12, 2);
     }
 
-    (12, 2)
+    (8, 2)
 }
 
 #[allow(unused_variables)]
@@ -541,7 +545,9 @@ fn op_0x0031(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
 fn op_0x0032(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
     let v = cpu.get_a();
     mmu.set8(cpu.get_hl(), v);
+
     cpu.set_hl(cpu.get_hl().wrapping_sub(1));
+
     (8, 1)
 }
 
@@ -606,7 +612,7 @@ fn op_0x0038(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
         return (12, 2);
     }
 
-    (12, 2)
+    (8, 2)
 }
 
 #[allow(unused_variables)]
@@ -627,7 +633,9 @@ fn op_0x0039(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
 fn op_0x003a(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
     let v = mmu.get8(cpu.get_hl());
     cpu.set_a(v);
+
     cpu.set_hl(cpu.get_hl().wrapping_sub(1));
+
     (8, 1)
 }
 
@@ -2042,7 +2050,7 @@ fn op_0x00c0(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
         return (20, 0);
     }
 
-    (20, 1)
+    (8, 1)
 }
 
 #[allow(unused_variables)]
@@ -2062,7 +2070,7 @@ fn op_0x00c2(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
         return (16, 0);
     }
 
-    (16, 3)
+    (12, 3)
 }
 
 #[allow(unused_variables)]
@@ -2082,7 +2090,7 @@ fn op_0x00c4(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
         return (24, 0);
     }
 
-    (24, 3)
+    (12, 3)
 }
 
 #[allow(unused_variables)]
@@ -2109,8 +2117,9 @@ fn op_0x00c6(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
 #[allow(unused_variables)]
 fn op_0x00c7(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
     cpu.push(mmu, cpu.get_pc().wrapping_add(1));
-    cpu.set_pc(0x0000);
-    (16, 0)
+    cpu.set_pc(0x0000u16.wrapping_sub(1));
+
+    (16, 1)
 }
 
 #[allow(unused_variables)]
@@ -2122,7 +2131,7 @@ fn op_0x00c8(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
         return (20, 0);
     }
 
-    (20, 1)
+    (8, 1)
 }
 
 #[allow(unused_variables)]
@@ -2142,7 +2151,7 @@ fn op_0x00ca(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
         return (16, 0);
     }
 
-    (16, 3)
+    (12, 3)
 }
 
 #[allow(unused_variables)]
@@ -2159,7 +2168,7 @@ fn op_0x00cc(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
         return (24, 0);
     }
 
-    (24, 3)
+    (12, 3)
 }
 
 #[allow(unused_variables)]
@@ -2187,8 +2196,9 @@ fn op_0x00ce(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
 #[allow(unused_variables)]
 fn op_0x00cf(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
     cpu.push(mmu, cpu.get_pc().wrapping_add(1));
-    cpu.set_pc(0x0008);
-    (16, 0)
+    cpu.set_pc(0x0008u16.wrapping_sub(1));
+
+    (16, 1)
 }
 
 #[allow(unused_variables)]
@@ -2200,7 +2210,7 @@ fn op_0x00d0(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
         return (20, 0);
     }
 
-    (20, 1)
+    (8, 1)
 }
 
 #[allow(unused_variables)]
@@ -2220,7 +2230,7 @@ fn op_0x00d2(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
         return (16, 0);
     }
 
-    (16, 3)
+    (12, 3)
 }
 
 #[allow(unused_variables)]
@@ -2232,7 +2242,7 @@ fn op_0x00d4(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
         return (24, 0);
     }
 
-    (24, 3)
+    (12, 3)
 }
 
 #[allow(unused_variables)]
@@ -2259,8 +2269,9 @@ fn op_0x00d6(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
 #[allow(unused_variables)]
 fn op_0x00d7(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
     cpu.push(mmu, cpu.get_pc().wrapping_add(1));
-    cpu.set_pc(0x0010);
-    (16, 0)
+    cpu.set_pc(0x0010u16.wrapping_sub(1));
+
+    (16, 1)
 }
 
 #[allow(unused_variables)]
@@ -2272,7 +2283,7 @@ fn op_0x00d8(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
         return (20, 0);
     }
 
-    (20, 1)
+    (8, 1)
 }
 
 #[allow(unused_variables)]
@@ -2293,7 +2304,7 @@ fn op_0x00da(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
         return (16, 0);
     }
 
-    (16, 3)
+    (12, 3)
 }
 
 #[allow(unused_variables)]
@@ -2305,7 +2316,7 @@ fn op_0x00dc(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
         return (24, 0);
     }
 
-    (24, 3)
+    (12, 3)
 }
 
 #[allow(unused_variables)]
@@ -2325,15 +2336,16 @@ fn op_0x00de(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
 #[allow(unused_variables)]
 fn op_0x00df(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
     cpu.push(mmu, cpu.get_pc().wrapping_add(1));
-    cpu.set_pc(0x0018);
-    (16, 0)
+    cpu.set_pc(0x0018u16.wrapping_sub(1));
+
+    (16, 1)
 }
 
 #[allow(unused_variables)]
 fn op_0x00e0(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
-    let n = mmu.get8(cpu.get_pc().wrapping_add(arg));
     let v = cpu.get_a();
-    mmu.set8(0xFF00 | n as u16, v);
+    mmu.set8(0xff00 + mmu.get8(cpu.get_pc().wrapping_add(arg)) as u16, v);
+
     (12, 2)
 }
 
@@ -2375,8 +2387,9 @@ fn op_0x00e6(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
 #[allow(unused_variables)]
 fn op_0x00e7(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
     cpu.push(mmu, cpu.get_pc().wrapping_add(1));
-    cpu.set_pc(0x0020);
-    (16, 0)
+    cpu.set_pc(0x0020u16.wrapping_sub(1));
+
+    (16, 1)
 }
 
 #[allow(unused_variables)]
@@ -2424,15 +2437,16 @@ fn op_0x00ee(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
 #[allow(unused_variables)]
 fn op_0x00ef(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
     cpu.push(mmu, cpu.get_pc().wrapping_add(1));
-    cpu.set_pc(0x0028);
-    (16, 0)
+    cpu.set_pc(0x0028u16.wrapping_sub(1));
+
+    (16, 1)
 }
 
 #[allow(unused_variables)]
 fn op_0x00f0(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
-    let n = mmu.get8(cpu.get_pc().wrapping_add(arg));
-    let v = mmu.get8(0xFF00 | n as u16);
+    let v = mmu.get8(0xff00 + mmu.get8(cpu.get_pc().wrapping_add(arg)) as u16);
     cpu.set_a(v);
+
     (12, 2)
 }
 
@@ -2481,8 +2495,9 @@ fn op_0x00f6(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
 #[allow(unused_variables)]
 fn op_0x00f7(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
     cpu.push(mmu, cpu.get_pc().wrapping_add(1));
-    cpu.set_pc(0x0030);
-    (16, 0)
+    cpu.set_pc(0x0030u16.wrapping_sub(1));
+
+    (16, 1)
 }
 
 #[allow(unused_variables)]
@@ -2538,8 +2553,9 @@ fn op_0x00fe(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
 #[allow(unused_variables)]
 fn op_0x00ff(arg: u16, cpu: &mut Cpu, mmu: &mut Mmu) -> (usize, usize) {
     cpu.push(mmu, cpu.get_pc().wrapping_add(1));
-    cpu.set_pc(0x0038);
-    (16, 0)
+    cpu.set_pc(0x0038u16.wrapping_sub(1));
+
+    (16, 1)
 }
 
 #[allow(unused_variables)]

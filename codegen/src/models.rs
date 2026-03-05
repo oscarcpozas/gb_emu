@@ -12,6 +12,10 @@ pub struct Flags {
 pub struct Operand {
     pub name: String,
     pub immediate: bool,
+    #[serde(default)]
+    pub increment: bool,
+    #[serde(default)]
+    pub decrement: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
