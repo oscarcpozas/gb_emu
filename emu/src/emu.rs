@@ -1,5 +1,6 @@
 use crate::cpu::Cpu;
 use crate::gui::hardware::Hardware;
+use crate::io::apu::Apu;
 use crate::io::boot::BootRom;
 use crate::io::gpu::ppu::Ppu;
 use crate::io::interrupt::{Interrupt, INT_JOYPAD};
@@ -29,12 +30,13 @@ pub struct Emu {
     interrupt: Rc<RefCell<Interrupt>>,
     joypad: Rc<RefCell<Joypad>>,
     timer: Rc<RefCell<Timer>>,
+    apu: Rc<RefCell<Apu>>,
     cycles: usize,
 }
 
 impl Emu {
     pub fn run(rom: Vec<u8>, hardware: Hardware) {
-        let mut emu = Emu::new(rom, hardware.get_vram(), hardware.get_keys_states());
+        let mut emu = Emu::new(rom, hardware.get_vram(), hardware.get_keys_states(), hardware.get_muted());
         emu.cartridge.borrow().show_info();
 
         info!("Starting emulation loop");
@@ -60,6 +62,7 @@ impl Emu {
         rom: Vec<u8>,
         vram_buffer: std::sync::Arc<std::sync::Mutex<Vec<u32>>>,
         keys: std::sync::Arc<std::sync::Mutex<std::collections::HashMap<crate::gui::window::GameBoyKey, bool>>>,
+        muted: std::sync::Arc<std::sync::atomic::AtomicBool>,
     ) -> Self {
         let cpu = Cpu::new();
         let mut mmu = Mmu::new();
@@ -70,6 +73,7 @@ impl Emu {
         let interrupt = Rc::new(RefCell::new(Interrupt::new()));
         let joypad = Rc::new(RefCell::new(Joypad::new(keys)));
         let timer = Rc::new(RefCell::new(Timer::new()));
+        let apu = Rc::new(RefCell::new(Apu::new(muted)));
 
         let cartridge_handler = Rc::new(RefCellMemHandler::new(cartridge.clone()));
         let boot_rom_handler = Rc::new(RefCellMemHandler::new(boot_rom.clone()));
@@ -77,6 +81,7 @@ impl Emu {
         let interrupt_handler = Rc::new(RefCellMemHandler::new(interrupt.clone()));
         let joypad_handler = Rc::new(RefCellMemHandler::new(joypad.clone()));
         let timer_handler = Rc::new(RefCellMemHandler::new(timer.clone()));
+        let apu_handler = Rc::new(RefCellMemHandler::new(apu.clone()));
 
         // Boot ROM must be registered BEFORE cartridge so it takes priority for 0x0000-0x00FF.
         // When boot ROM is inactive it returns PassThrough, falling through to cartridge.
@@ -91,6 +96,7 @@ impl Emu {
         mmu.add_handler((0xFFFF, 0xFFFF), interrupt_handler.clone());
         mmu.add_handler((0xFF00, 0xFF00), joypad_handler.clone());
         mmu.add_handler((0xFF04, 0xFF07), timer_handler.clone());
+        mmu.add_handler((0xFF10, 0xFF3F), apu_handler.clone());
 
         Self {
             cpu,
@@ -101,6 +107,7 @@ impl Emu {
             interrupt,
             joypad,
             timer,
+            apu,
             cycles: 0,
         }
     }
@@ -149,6 +156,9 @@ impl Emu {
         if timer_interrupt != 0 {
             self.interrupt.borrow_mut().request(timer_interrupt);
         }
+
+        // Update APU
+        self.apu.borrow_mut().update(cycles);
 
         // Poll joypad for newly-pressed keys
         if self.joypad.borrow_mut().poll_interrupt() {

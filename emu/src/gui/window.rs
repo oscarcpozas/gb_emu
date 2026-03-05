@@ -1,4 +1,4 @@
-use minifb::{Scale, Window, WindowOptions};
+use minifb::{Key, KeyRepeat, Scale, Window, WindowOptions};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -24,6 +24,7 @@ pub enum GameBoyKey {
 pub struct GUI {
     window: Window,
     pub escape: Arc<AtomicBool>,
+    pub muted: Arc<AtomicBool>,
     pub vram: Arc<Mutex<Vec<u32>>>,
     pub keys_states: Arc<Mutex<HashMap<GameBoyKey, bool>>>,
 }
@@ -45,6 +46,7 @@ impl GUI {
             keys_states: Arc::new(Mutex::new(GUI::new_key_states())),
             vram: Arc::new(Mutex::new(vec![0; WINDOW_WIDTH * WINDOW_HEIGHT])),
             escape: Arc::new(AtomicBool::new(false)),
+            muted: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -82,6 +84,14 @@ impl GUI {
     }
 
     fn get_key_update(&mut self) {
+        // Toggle mute on a single M key press (not while held)
+        for key in self.window.get_keys_pressed(KeyRepeat::No) {
+            if key == Key::M {
+                let prev = self.muted.load(Ordering::Relaxed);
+                self.muted.store(!prev, Ordering::Relaxed);
+            }
+        }
+
         // Reset all keys to not pressed
         for v in self.keys_states.lock().unwrap().values_mut() {
             *v = false;
