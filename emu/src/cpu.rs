@@ -58,7 +58,7 @@ impl Cpu {
         let (inst, args) = self.fetch_op_from_mem(mmu);
         let (time, size) = instr::decode(inst, args, self, mmu);
 
-        self.pc = self.get_pc().wrapping_add(args); // Update the value of the program counter.
+        self.pc = self.get_pc().wrapping_add(size as u16); // Advance PC by the full instruction size.
 
         time
     }
@@ -331,13 +331,18 @@ mod test {
 
     #[test]
     fn test_op_0x0001() {
+        // LD BC, d16 — opcode 0x01 followed by little-endian 16-bit immediate.
         let mut mmu = Mmu::new();
         let mut cpu = Cpu::new();
 
-        cpu.set_bc(0x1234);
+        mmu.set8(0x0000, 0x01); // LD BC, d16
+        mmu.set8(0x0001, 0x34); // low byte
+        mmu.set8(0x0002, 0x12); // high byte → BC = 0x1234
+
         let time = cpu.fetch_n_execute(&mut mmu);
 
         assert_eq!(time, 12);
-        assert_eq!(cpu.get_pc(), 1);
+        assert_eq!(cpu.get_pc(), 3, "3-byte instruction must advance PC by 3");
+        assert_eq!(cpu.get_bc(), 0x1234);
     }
 }

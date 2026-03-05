@@ -49,11 +49,12 @@ impl GUI {
     }
 
     pub fn run(mut self) {
-        while !self.escape.load(Ordering::Relaxed) {
+        while !self.escape.load(Ordering::Relaxed) && self.window.is_open() {
             std::thread::sleep(Duration::from_millis(10));
             self.update_vram();
             self.get_key_update();
         }
+        self.escape.store(true, Ordering::Relaxed);
     }
 
     pub fn is_alive(&self) -> bool {

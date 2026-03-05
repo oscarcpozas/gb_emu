@@ -103,13 +103,13 @@ impl Mmu {
 
     pub fn get16(&self, addr: u16) -> u16 {
         let l = self.get8(addr) as u16;
-        let h = self.get8(addr + 1) as u16;
+        let h = self.get8(addr.wrapping_add(1)) as u16;
         h << 8 | l
     }
 
     pub fn set16(&mut self, addr: u16, v: u16) {
         self.set8(addr, v as u8);
-        self.set8(addr + 1, (v >> 8) as u8);
+        self.set8(addr.wrapping_add(1), (v >> 8) as u8);
     }
 
     // Echo ram sector contains the same data as C000-DDFF sector

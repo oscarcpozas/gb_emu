@@ -5,6 +5,8 @@ mod gui;
 mod instr;
 mod io;
 mod mmu;
+#[cfg(test)]
+mod tests;
 
 use crate::emu::Emu;
 use crate::gui::hardware::Hardware;

@@ -78,12 +78,15 @@ impl Emu {
         let joypad_handler = Rc::new(RefCellMemHandler::new(joypad.clone()));
         let timer_handler = Rc::new(RefCellMemHandler::new(timer.clone()));
 
-        mmu.add_handler((0x0000, 0x7FFF), cartridge_handler.clone());
+        // Boot ROM must be registered BEFORE cartridge so it takes priority for 0x0000-0x00FF.
+        // When boot ROM is inactive it returns PassThrough, falling through to cartridge.
         mmu.add_handler((0x0000, 0x00FF), boot_rom_handler.clone());
         mmu.add_handler((0xFF50, 0xFF50), boot_rom_handler.clone());
+        mmu.add_handler((0x0000, 0x7FFF), cartridge_handler.clone());
         mmu.add_handler((0x8000, 0x9FFF), ppu_handler.clone());
         mmu.add_handler((0xFE00, 0xFE9F), ppu_handler.clone());
         mmu.add_handler((0xFF40, 0xFF4B), ppu_handler.clone());
+        mmu.add_handler((0xFF46, 0xFF46), ppu_handler.clone());
         mmu.add_handler((0xFF0F, 0xFF0F), interrupt_handler.clone());
         mmu.add_handler((0xFFFF, 0xFFFF), interrupt_handler.clone());
         mmu.add_handler((0xFF00, 0xFF00), joypad_handler.clone());
@@ -113,6 +116,25 @@ impl Emu {
     }
 
     fn step(&mut self) -> usize {
+        // Debug: log first 60 instructions
+        if self.cycles < 60 * 24 {
+            log::trace!(
+                "PC={:04X} SP={:04X} A={:02X} F={:02X} BC={:04X} DE={:04X} HL={:04X} | op={:02X}",
+                self.cpu.get_pc(), self.cpu.get_sp(),
+                self.cpu.get_a(), self.cpu.get_af() as u8,
+                self.cpu.get_bc(), self.cpu.get_de(), self.cpu.get_hl(),
+                self.mmu.get8(self.cpu.get_pc()),
+            );
+        }
+
+        // Execute pending OAM DMA if requested (triggered by write to 0xFF46).
+        let pending_dma = self.ppu.borrow_mut().pending_dma.take();
+        if let Some(page) = pending_dma {
+            let src_addr = (page as u16) << 8;
+            let src: Vec<u8> = (0..0xA0u16).map(|i| self.mmu.get8(src_addr + i)).collect();
+            self.ppu.borrow_mut().execute_dma(&src);
+        }
+
         // Execute one CPU instruction
         let cycles = self.cpu.fetch_n_execute(&mut self.mmu);
 

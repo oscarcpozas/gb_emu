@@ -69,6 +69,10 @@ pub struct Ppu {
     mode: u8,
     /// Cycles until next mode
     mode_cycles: usize,
+    /// Internal window line counter (independent of LY)
+    window_line: u8,
+    /// Pending OAM DMA source page (written to 0xFF46)
+    pub pending_dma: Option<u8>,
     /// Frame buffer - pixel data to be displayed
     frame_buffer: Arc<Mutex<Vec<u32>>>,
 }
@@ -78,7 +82,7 @@ impl Ppu {
         Self {
             vram: vec![0; 0x2000],
             oam: vec![0; 0xA0],
-            lcdc: 0x91, // Display enabled by default
+            lcdc: 0x91,
             stat: 0,
             scy: 0,
             scx: 0,
@@ -86,11 +90,13 @@ impl Ppu {
             lyc: 0,
             wy: 0,
             wx: 0,
-            bgp: 0xFC, // Default palette: 11 10 01 00 (black, dark, light, white)
+            bgp: 0xFC,
             obp0: 0xFF,
             obp1: 0xFF,
             mode: MODE_OAM,
             mode_cycles: 0,
+            window_line: 0,
+            pending_dma: None,
             frame_buffer,
         }
     }
@@ -105,6 +111,7 @@ impl Ppu {
             self.mode = MODE_HBLANK;
             self.ly = 0;
             self.mode_cycles = 0;
+            self.window_line = 0;
             return 0;
         }
 
@@ -162,6 +169,7 @@ impl Ppu {
 
                     if self.ly > 153 {
                         self.ly = 0;
+                        self.window_line = 0;
                         self.mode = MODE_OAM;
                         self.stat = (self.stat & 0xFC) | MODE_OAM;
                         // STAT interrupt on OAM
@@ -190,97 +198,196 @@ impl Ppu {
         interrupts
     }
 
-    /// Render a single scanline
+    /// Render a single scanline into the shared frame buffer.
     fn render_scanline(&mut self) {
         if self.ly >= SCREEN_HEIGHT as u8 {
             return;
         }
 
-        // Render background
+        // Per-pixel working data for this scanline.
+        // color_index: palette color (0-3) for the final pixel.
+        // bg_opaque: true when BG/Window pixel is color 1-3 (used for sprite priority).
+        let mut color_index = [0u8; SCREEN_WIDTH];
+        let mut bg_opaque = [false; SCREEN_WIDTH];
+
         if self.lcdc & LCDC_BG_ENABLE != 0 {
-            self.render_background();
+            self.render_background(&mut color_index, &mut bg_opaque);
         }
 
-        // Render window
-        if self.lcdc & LCDC_WINDOW_ENABLE != 0 && self.wy <= self.ly {
-            self.render_window();
-        }
+        let window_drawn = if self.lcdc & LCDC_WINDOW_ENABLE != 0 && self.wy <= self.ly {
+            self.render_window(&mut color_index, &mut bg_opaque)
+        } else {
+            false
+        };
 
-        // Render sprites
         if self.lcdc & LCDC_OBJ_ENABLE != 0 {
-            self.render_sprites();
+            self.render_sprites(&mut color_index, &bg_opaque);
+        }
+
+        // Advance the window internal line counter when a window line was drawn.
+        if window_drawn {
+            self.window_line += 1;
+        }
+
+        // Write final scanline to the frame buffer.
+        let mut frame_buffer = self.frame_buffer.lock().unwrap();
+        let base = self.ly as usize * SCREEN_WIDTH;
+        for x in 0..SCREEN_WIDTH {
+            frame_buffer[base + x] = Self::dmg_color(color_index[x]);
         }
     }
 
-    /// Render the background for the current scanline
-    fn render_background(&mut self) {
-        let tile_map_addr = if self.lcdc & LCDC_BG_MAP != 0 {
-            0x1C00
-        } else {
-            0x1800
-        };
-        let tile_data_addr = if self.lcdc & LCDC_TILE_DATA != 0 {
-            0x0000
-        } else {
-            0x1000
-        };
-        let signed_addressing = (self.lcdc & LCDC_TILE_DATA) == 0;
+    /// Map a 2-bit DMG palette color index to an ARGB pixel value.
+    fn dmg_color(index: u8) -> u32 {
+        match index {
+            0 => COLOR_WHITE,
+            1 => COLOR_LIGHT_GREEN,
+            2 => COLOR_DARK_GREEN,
+            3 => COLOR_BLACK,
+            _ => unreachable!(),
+        }
+    }
 
-        let y = (self.ly.wrapping_add(self.scy)) as usize;
-        let tile_y = y / 8;
-        let tile_sub_y = y % 8;
+    /// Look up a tile pixel color using the shared tile-data addressing logic.
+    /// Returns the raw 2-bit color index (before palette mapping).
+    fn tile_color(&self, tile_index: u8, tile_sub_x: usize, tile_sub_y: usize, signed: bool) -> u8 {
+        let base = if signed { 0x1000usize } else { 0x0000usize };
+        let tile_addr = if signed {
+            base + ((tile_index as i8 as i16 + 128) as usize * 16)
+        } else {
+            base + (tile_index as usize * 16)
+        };
+        let lo = self.vram[tile_addr + tile_sub_y * 2];
+        let hi = self.vram[tile_addr + tile_sub_y * 2 + 1];
+        let bit = 7 - tile_sub_x;
+        (((hi >> bit) & 1) << 1) | ((lo >> bit) & 1)
+    }
 
-        let mut frame_buffer = self.frame_buffer.lock().unwrap();
+    /// Apply a DMG palette register to a raw 2-bit color index.
+    fn apply_palette(palette: u8, color_id: u8) -> u8 {
+        (palette >> (color_id * 2)) & 0x03
+    }
+
+    /// Render the background layer into the scanline buffers.
+    fn render_background(&self, color_index: &mut [u8; SCREEN_WIDTH], bg_opaque: &mut [bool; SCREEN_WIDTH]) {
+        let map_base = if self.lcdc & LCDC_BG_MAP != 0 { 0x1C00 } else { 0x1800 };
+        let signed = self.lcdc & LCDC_TILE_DATA == 0;
+
+        let py = self.ly.wrapping_add(self.scy) as usize;
+        let tile_row = py / 8;
+        let sub_y = py % 8;
 
         for x in 0..SCREEN_WIDTH {
-            let scrolled_x = (x as u8).wrapping_add(self.scx) as usize;
-            let tile_x = scrolled_x / 8;
-            let tile_sub_x = 7 - (scrolled_x % 8); // Bits are reversed
+            let px = (x as u8).wrapping_add(self.scx) as usize;
+            let tile_col = px / 8;
+            let sub_x = px % 8;
 
-            // Get tile index from the tile map
-            let tile_map_offset = tile_y * 32 + tile_x;
-            let tile_index = self.vram[tile_map_addr + tile_map_offset];
+            let tile_idx = self.vram[map_base + tile_row * 32 + tile_col];
+            let raw = self.tile_color(tile_idx, sub_x, sub_y, signed);
+            let color = Self::apply_palette(self.bgp, raw);
 
-            // Get tile data address
-            let tile_addr = if signed_addressing {
-                // Signed addressing (0x8800-0x97FF)
-                tile_data_addr + ((tile_index as i8 as i16 + 128) as usize * 16)
-            } else {
-                // Unsigned addressing (0x8000-0x8FFF)
-                tile_data_addr + (tile_index as usize * 16)
-            };
-
-            // Get tile data for the current row
-            let tile_data_low = self.vram[tile_addr + tile_sub_y * 2];
-            let tile_data_high = self.vram[tile_addr + tile_sub_y * 2 + 1];
-
-            // Get color bit
-            let color_bit = ((tile_data_high >> tile_sub_x) & 0x01) << 1
-                | ((tile_data_low >> tile_sub_x) & 0x01);
-
-            // Get color from palette
-            let color = (self.bgp >> (color_bit * 2)) & 0x03;
-
-            // Set pixel in frame buffer
-            let pixel_addr = self.ly as usize * SCREEN_WIDTH + x;
-            frame_buffer[pixel_addr] = match color {
-                0 => COLOR_WHITE,
-                1 => COLOR_LIGHT_GREEN,
-                2 => COLOR_DARK_GREEN,
-                3 => COLOR_BLACK,
-                _ => unreachable!("Invalid color"),
-            };
+            color_index[x] = color;
+            bg_opaque[x] = raw != 0;
         }
     }
 
-    /// Render the window for the current scanline
-    fn render_window(&mut self) {
-        // TODO: Implement window rendering
+    /// Render the window layer into the scanline buffers.
+    /// Returns true if any window pixels were drawn (used to advance window_line).
+    fn render_window(&self, color_index: &mut [u8; SCREEN_WIDTH], bg_opaque: &mut [bool; SCREEN_WIDTH]) -> bool {
+        // WX is the screen X position + 7; values < 7 clip off the left edge.
+        let wx = self.wx as i16 - 7;
+        let map_base = if self.lcdc & LCDC_WINDOW_MAP != 0 { 0x1C00 } else { 0x1800 };
+        let signed = self.lcdc & LCDC_TILE_DATA == 0;
+        let sub_y = self.window_line as usize % 8;
+        let tile_row = self.window_line as usize / 8;
+
+        let mut drawn = false;
+        for x in 0..SCREEN_WIDTH {
+            let win_x = x as i16 - wx;
+            if win_x < 0 {
+                continue;
+            }
+            let tile_col = win_x as usize / 8;
+            let sub_x = win_x as usize % 8;
+
+            let tile_idx = self.vram[map_base + tile_row * 32 + tile_col];
+            let raw = self.tile_color(tile_idx, sub_x, sub_y, signed);
+            let color = Self::apply_palette(self.bgp, raw);
+
+            color_index[x] = color;
+            bg_opaque[x] = raw != 0;
+            drawn = true;
+        }
+        drawn
     }
 
-    /// Render sprites for the current scanline
-    fn render_sprites(&mut self) {
-        // TODO: Implement sprite rendering
+    /// Render sprites for this scanline into the color buffer.
+    fn render_sprites(&self, color_index: &mut [u8; SCREEN_WIDTH], bg_opaque: &[bool; SCREEN_WIDTH]) {
+        let tall = self.lcdc & LCDC_OBJ_SIZE != 0;
+        let sprite_height: i32 = if tall { 16 } else { 8 };
+        let ly = self.ly as i32;
+
+        // Collect up to 10 visible sprites in OAM order.
+        // Each entry: (sx, sy, tile_index, attributes)
+        let mut visible: Vec<(i32, i32, u8, u8)> = Vec::with_capacity(10);
+        for i in 0..40usize {
+            let base = i * 4;
+            let sy = self.oam[base] as i32 - 16;
+            let sx = self.oam[base + 1] as i32 - 8;
+            let tile = if tall { self.oam[base + 2] & 0xFE } else { self.oam[base + 2] };
+            let attrs = self.oam[base + 3];
+
+            if ly >= sy && ly < sy + sprite_height {
+                visible.push((sx, sy, tile, attrs));
+                if visible.len() == 10 {
+                    break;
+                }
+            }
+        }
+
+        // Draw in reverse order: lower OAM index = higher priority (drawn on top last).
+        for &(sx, sy, tile, attrs) in visible.iter().rev() {
+            let behind_bg = attrs & 0x80 != 0;
+            let y_flip    = attrs & 0x40 != 0;
+            let x_flip    = attrs & 0x20 != 0;
+            let palette   = if attrs & 0x10 != 0 { self.obp1 } else { self.obp0 };
+
+            let mut row = (ly - sy) as usize;
+            if y_flip {
+                row = sprite_height as usize - 1 - row;
+            }
+
+            // In 8×16 mode the bottom half uses the next tile.
+            let tile_idx = if tall && row >= 8 { tile + 1 } else { tile };
+            let tile_row = row % 8;
+
+            for col in 0..8i32 {
+                let screen_x = sx + col;
+                if screen_x < 0 || screen_x >= SCREEN_WIDTH as i32 {
+                    continue;
+                }
+                let x = screen_x as usize;
+                let tile_col = if x_flip { 7 - col as usize } else { col as usize };
+
+                // Sprites always use unsigned (0x8000-based) tile addressing.
+                let raw = self.tile_color(tile_idx, tile_col, tile_row, false);
+                if raw == 0 {
+                    continue; // color 0 is transparent
+                }
+                if behind_bg && bg_opaque[x] {
+                    continue; // sprite is behind BG color 1-3
+                }
+
+                color_index[x] = Self::apply_palette(palette, raw);
+            }
+        }
+    }
+
+    /// Execute a pending OAM DMA transfer. Called from emu.rs with a full MMU read slice.
+    /// Copies 160 bytes from (page * 0x100) into OAM.
+    pub fn execute_dma(&mut self, src: &[u8]) {
+        let len = src.len().min(0xA0);
+        self.oam[..len].copy_from_slice(&src[..len]);
     }
 
     /// Get a byte from VRAM
@@ -345,6 +452,9 @@ impl MemHandler for Ppu {
 
             // Window X Position minus 7 (0xFF4B)
             0xFF4B => MemRead::Replace(self.wx),
+
+            // DMA register (0xFF46) — write-only, reads as 0xFF
+            0xFF46 => MemRead::Replace(0xFF),
 
             // Not a PPU register
             _ => MemRead::PassThrough,
@@ -426,6 +536,13 @@ impl MemHandler for Ppu {
             // Window X Position minus 7 (0xFF4B)
             0xFF4B => {
                 self.wx = value;
+                MemWrite::Block
+            }
+
+            // OAM DMA transfer (0xFF46): writing triggers a copy from (value * 0x100) to OAM.
+            // The actual copy is performed in emu.rs where the MMU is accessible.
+            0xFF46 => {
+                self.pending_dma = Some(value);
                 MemWrite::Block
             }
 
