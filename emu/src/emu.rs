@@ -2,8 +2,10 @@ use crate::cpu::Cpu;
 use crate::gui::hardware::Hardware;
 use crate::io::boot::BootRom;
 use crate::io::gpu::ppu::Ppu;
-use crate::io::interrupt::Interrupt;
+use crate::io::interrupt::{Interrupt, INT_JOYPAD};
+use crate::io::joypad::Joypad;
 use crate::io::mbc::cartridge::Cartridge;
+use crate::io::timer::Timer;
 use crate::mmu::{Mmu, RefCellMemHandler};
 use log::info;
 use std::cell::RefCell;
@@ -25,12 +27,14 @@ pub struct Emu {
     boot_rom: Rc<RefCell<BootRom>>,
     ppu: Rc<RefCell<Ppu>>,
     interrupt: Rc<RefCell<Interrupt>>,
+    joypad: Rc<RefCell<Joypad>>,
+    timer: Rc<RefCell<Timer>>,
     cycles: usize,
 }
 
 impl Emu {
     pub fn run(rom: Vec<u8>, hardware: Hardware) {
-        let mut emu = Emu::new(rom, hardware.get_vram());
+        let mut emu = Emu::new(rom, hardware.get_vram(), hardware.get_keys_states());
         emu.cartridge.borrow().show_info();
 
         info!("Starting emulation loop");
@@ -52,29 +56,28 @@ impl Emu {
         }
     }
 
-    fn new(rom: Vec<u8>, vram_buffer: std::sync::Arc<std::sync::Mutex<Vec<u32>>>) -> Self {
+    fn new(
+        rom: Vec<u8>,
+        vram_buffer: std::sync::Arc<std::sync::Mutex<Vec<u32>>>,
+        keys: std::sync::Arc<std::sync::Mutex<std::collections::HashMap<crate::gui::window::GameBoyKey, bool>>>,
+    ) -> Self {
         let cpu = Cpu::new();
         let mut mmu = Mmu::new();
 
-        // Create the cartridge
         let cartridge = Rc::new(RefCell::new(Cartridge::new(rom)));
-
-        // Create the boot ROM
         let boot_rom = Rc::new(RefCell::new(BootRom::new()));
-
-        // Create the PPU
         let ppu = Rc::new(RefCell::new(Ppu::new(vram_buffer)));
-
-        // Create the interrupt controller
         let interrupt = Rc::new(RefCell::new(Interrupt::new()));
+        let joypad = Rc::new(RefCell::new(Joypad::new(keys)));
+        let timer = Rc::new(RefCell::new(Timer::new()));
 
-        // Create memory handlers
         let cartridge_handler = Rc::new(RefCellMemHandler::new(cartridge.clone()));
         let boot_rom_handler = Rc::new(RefCellMemHandler::new(boot_rom.clone()));
         let ppu_handler = Rc::new(RefCellMemHandler::new(ppu.clone()));
         let interrupt_handler = Rc::new(RefCellMemHandler::new(interrupt.clone()));
+        let joypad_handler = Rc::new(RefCellMemHandler::new(joypad.clone()));
+        let timer_handler = Rc::new(RefCellMemHandler::new(timer.clone()));
 
-        // Add memory handlers
         mmu.add_handler((0x0000, 0x7FFF), cartridge_handler.clone());
         mmu.add_handler((0x0000, 0x00FF), boot_rom_handler.clone());
         mmu.add_handler((0xFF50, 0xFF50), boot_rom_handler.clone());
@@ -83,6 +86,8 @@ impl Emu {
         mmu.add_handler((0xFF40, 0xFF4B), ppu_handler.clone());
         mmu.add_handler((0xFF0F, 0xFF0F), interrupt_handler.clone());
         mmu.add_handler((0xFFFF, 0xFFFF), interrupt_handler.clone());
+        mmu.add_handler((0xFF00, 0xFF00), joypad_handler.clone());
+        mmu.add_handler((0xFF04, 0xFF07), timer_handler.clone());
 
         Self {
             cpu,
@@ -91,6 +96,8 @@ impl Emu {
             boot_rom,
             ppu,
             interrupt,
+            joypad,
+            timer,
             cycles: 0,
         }
     }
@@ -109,10 +116,21 @@ impl Emu {
         // Execute one CPU instruction
         let cycles = self.cpu.fetch_n_execute(&mut self.mmu);
 
-        // Update PPU and collect any interrupt requests
+        // Update PPU
         let ppu_interrupts = self.ppu.borrow_mut().update(cycles);
         if ppu_interrupts != 0 {
             self.interrupt.borrow_mut().request(ppu_interrupts);
+        }
+
+        // Update timer
+        let timer_interrupt = self.timer.borrow_mut().update(cycles);
+        if timer_interrupt != 0 {
+            self.interrupt.borrow_mut().request(timer_interrupt);
+        }
+
+        // Poll joypad for newly-pressed keys
+        if self.joypad.borrow_mut().poll_interrupt() {
+            self.interrupt.borrow_mut().request(INT_JOYPAD);
         }
 
         // Dispatch pending interrupts to the CPU
