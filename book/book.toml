@@ -1,20 +1,4 @@
 [book]
-title = "Emulando la Gameboy en Rust"
-authors = ["Óscar Caballero"]
-
-[rust]
-edition = "2018"
-
-[build]
-build-dir = "src"
-create-missing = false
-
-[preprocessor.index]
-
-[preprocessor.links]
-
-[output.html]
-additional-css = ["general.css"]
-
-[output.html.search]
-limit-results = 15
+title = "n"
+authors = ["Oscar Caballero"]
+language = "en"
