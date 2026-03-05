@@ -251,11 +251,12 @@ impl Ppu {
     /// Look up a tile pixel color using the shared tile-data addressing logic.
     /// Returns the raw 2-bit color index (before palette mapping).
     fn tile_color(&self, tile_index: u8, tile_sub_x: usize, tile_sub_y: usize, signed: bool) -> u8 {
-        let base = if signed { 0x1000usize } else { 0x0000usize };
+        // Unsigned mode (LCDC bit 4 = 1): tiles 0-255 at VRAM 0x0000-0x0FF0 (GB 0x8000-0x8FF0)
+        // Signed mode  (LCDC bit 4 = 0): tiles -128..127 centred at VRAM 0x1000 (GB 0x9000)
         let tile_addr = if signed {
-            base + ((tile_index as i8 as i16 + 128) as usize * 16)
+            (0x1000i32 + (tile_index as i8 as i32) * 16) as usize
         } else {
-            base + (tile_index as usize * 16)
+            tile_index as usize * 16
         };
         let lo = self.vram[tile_addr + tile_sub_y * 2];
         let hi = self.vram[tile_addr + tile_sub_y * 2 + 1];
