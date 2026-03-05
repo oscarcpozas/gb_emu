@@ -1,4 +1,4 @@
-name: Deploy book site to Github Pages
+name: Deploy book to Github Pages
 
 on:
   push:
