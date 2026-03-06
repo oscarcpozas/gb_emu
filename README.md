@@ -4,7 +4,16 @@ Along with the project [I'm preparing a page](https://oscarcpozas.github.io/gb_e
 
 ### How to run the emu?
 
-```cargo run --bin emu -- ./misc/tetris.gb```
+```bash
+cargo run --bin emu -- ./misc/tetris.gb
+```
+
+### How serve the book?
+
+```bash
+mdbook serve book
+```
+
 
 ### Supported by
 

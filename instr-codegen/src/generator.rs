@@ -9,7 +9,7 @@ use tera::{Context, Tera};
 
 lazy_static! {
     pub static ref TEMPLATES: Tera = {
-        let mut tera = match Tera::new("codegen/templates/**/*") {
+        let mut tera = match Tera::new("instr-codegen/templates/**/*") {
             Ok(tera) => {
                 let names: Vec<_> = tera.get_template_names().collect();
                 println!("Templates found on this location: {}", names.join(", "));
