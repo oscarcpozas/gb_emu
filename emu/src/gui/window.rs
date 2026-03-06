@@ -1,8 +1,8 @@
+use minifb::{Key, KeyRepeat, Scale, Window, WindowOptions};
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use minifb::{Scale, Window, WindowOptions};
 
 const WINDOW_WIDTH: usize = 160;
 const WINDOW_HEIGHT: usize = 144;
@@ -17,13 +17,14 @@ pub enum GameBoyKey {
     A,
     B,
     Select,
-    Start
+    Start,
 }
 
 #[derive(Debug)]
 pub struct GUI {
     window: Window,
     pub escape: Arc<AtomicBool>,
+    pub muted: Arc<AtomicBool>,
     pub vram: Arc<Mutex<Vec<u32>>>,
     pub keys_states: Arc<Mutex<HashMap<GameBoyKey, bool>>>,
 }
@@ -35,29 +36,32 @@ impl GUI {
             scale: Scale::X4,
             ..WindowOptions::default()
         };
-        let window =
-            match Window::new(WINDOW_TITLE, WINDOW_WIDTH, WINDOW_HEIGHT, window_options) {
-                Ok(win) => win,
-                Err(err) => panic!("Error creating window {}", err)
-            };
+        let window = match Window::new(WINDOW_TITLE, WINDOW_WIDTH, WINDOW_HEIGHT, window_options) {
+            Ok(win) => win,
+            Err(err) => panic!("Error creating window {}", err),
+        };
 
         GUI {
             window,
             keys_states: Arc::new(Mutex::new(GUI::new_key_states())),
             vram: Arc::new(Mutex::new(vec![0; WINDOW_WIDTH * WINDOW_HEIGHT])),
             escape: Arc::new(AtomicBool::new(false)),
+            muted: Arc::new(AtomicBool::new(false)),
         }
     }
 
     pub fn run(mut self) {
-        while !self.escape.load(Ordering::Relaxed) {
+        while !self.escape.load(Ordering::Relaxed) && self.window.is_open() {
             std::thread::sleep(Duration::from_millis(10));
             self.update_vram();
             self.get_key_update();
         }
+        self.escape.store(true, Ordering::Relaxed);
     }
 
-    pub fn is_alive(&self) -> bool { return self.window.is_open() }
+    pub fn is_alive(&self) -> bool {
+        return self.window.is_open();
+    }
 
     fn new_key_states() -> HashMap<GameBoyKey, bool> {
         let mut keys_states = HashMap::new();
@@ -74,10 +78,25 @@ impl GUI {
 
     fn update_vram(&mut self) {
         let vram = self.vram.lock().unwrap().clone();
-        self.window.update_with_buffer(&vram, WINDOW_WIDTH, WINDOW_HEIGHT).unwrap();
+        self.window
+            .update_with_buffer(&vram, WINDOW_WIDTH, WINDOW_HEIGHT)
+            .unwrap();
     }
 
     fn get_key_update(&mut self) {
+        // Toggle mute on a single M key press (not while held)
+        for key in self.window.get_keys_pressed(KeyRepeat::No) {
+            if key == Key::M {
+                let prev = self.muted.load(Ordering::Relaxed);
+                self.muted.store(!prev, Ordering::Relaxed);
+            }
+        }
+
+        // Reset all keys to not pressed
+        for v in self.keys_states.lock().unwrap().values_mut() {
+            *v = false;
+        }
+
         for key in self.window.get_keys() {
             let gb_key = match key {
                 minifb::Key::Right => GameBoyKey::Right,

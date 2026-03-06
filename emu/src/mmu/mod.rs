@@ -1,7 +1,6 @@
-use std::cell::RefCell;
-use std::cmp::min;
-use std::collections::HashMap;
-use std::rc::Rc;
+pub mod handler;
+
+pub use crate::mmu::handler::RefCellMemHandler;
 
 /// The variants to control memory read access from the CPU.
 pub enum MemRead {
@@ -27,11 +26,21 @@ pub trait MemHandler {
 
     /// The function is called when the CPU attempts to write to the memory.
     fn on_write(&mut self, addr: u16, value: u8) -> MemWrite;
+
+    /// A version of on_write that can be called on a shared reference.
+    /// This is used by the MMU to call on_write on handlers stored in an Rc.
+    /// The default implementation panics, but RefCellMemHandler overrides it.
+    fn on_write_shared(&self, _addr: u16, _value: u8) -> MemWrite {
+        panic!("on_write_shared not implemented for this handler");
+    }
 }
+
+use std::collections::HashMap;
+use std::rc::Rc;
 
 pub struct Mmu {
     ram: Vec<u8>,
-    handlers: HashMap<u16, Vec<Rc<RefCell<dyn MemHandler>>>>,
+    handlers: HashMap<u16, Vec<Rc<dyn MemHandler>>>,
 }
 
 impl Mmu {
@@ -42,12 +51,15 @@ impl Mmu {
         }
     }
 
-    pub fn add_handler<T: MemHandler>(&mut self, range: (u16, u16), handler: Rc<RefCell<T>>) {
+    pub fn add_handler<T>(&mut self, range: (u16, u16), handler: Rc<T>)
+    where
+        T: MemHandler + 'static,
+    {
         for i in range.0..=range.1 {
             if self.handlers.contains_key(&i) {
-                self.handlers.get_mut(&i).unwrap().push(handler);
+                self.handlers.get_mut(&i).unwrap().push(handler.clone());
             } else {
-                self.handlers.insert(i, vec![handler]);
+                self.handlers.insert(i, vec![handler.clone()]);
             }
         }
     }
@@ -68,27 +80,40 @@ impl Mmu {
         self.ram[addr as usize]
     }
 
-    pub fn set8(&mut self, mut addr: u16, v: u8) {
+    pub fn set8(&mut self, mut addr: u16, mut v: u8) {
+        if let Some(handlers) = self.handlers.get(&addr) {
+            for handler in handlers.iter() {
+                match handler.on_write_shared(addr, v) {
+                    MemWrite::Replace(value) => {
+                        v = value;
+                    }
+                    MemWrite::PassThrough => {}
+                    MemWrite::Block => {
+                        return;
+                    }
+                }
+            }
+        }
+
         if self.is_echo_ram(addr) {
-            addr -= 0x2000; // Echo RAM sector, it's same content that C000-DDFF sector
+            addr -= 0x2000;
         }
         self.ram[addr as usize] = v;
     }
 
-    pub fn get16(&self, mut addr: u16) -> u16 {
+    pub fn get16(&self, addr: u16) -> u16 {
         let l = self.get8(addr) as u16;
-        let h = self.get8(addr + 1) as u16;
+        let h = self.get8(addr.wrapping_add(1)) as u16;
         h << 8 | l
     }
 
-    // TODO: Review that part, I guess the memory persists inverted
-    pub fn set16(&mut self, mut addr: u16, v: u16) {
+    pub fn set16(&mut self, addr: u16, v: u16) {
         self.set8(addr, v as u8);
-        self.set8(addr + 1, (v >> 8) as u8);
+        self.set8(addr.wrapping_add(1), (v >> 8) as u8);
     }
 
     // Echo ram sector contains the same data as C000-DDFF sector
     fn is_echo_ram(&self, addr: u16) -> bool {
-        addr >= 0xe000 && addr <= 0x1fff
+        addr >= 0xe000 && addr <= 0xfdff
     }
 }

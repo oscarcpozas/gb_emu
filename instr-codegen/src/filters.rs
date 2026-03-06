@@ -1,12 +1,17 @@
-use std::collections::HashMap;
-use tera::{to_value, Value};
-use tera::try_get_value;
 use crate::models::Operand;
+use std::collections::HashMap;
+use tera::try_get_value;
+use tera::{to_value, Value};
 
 pub fn getter(value: &Value, map: &HashMap<String, Value>) -> tera::Result<Value> {
     let operand = try_get_value!("arg", "value", Operand, value);
     let bits = try_get_value!("arg", "bits", usize, map.get("bits").unwrap());
-    Ok(to_value(&eval_getter(&operand.name.to_lowercase(), bits, operand.immediate)).unwrap())
+    Ok(to_value(&eval_getter(
+        &operand.name.to_lowercase(),
+        bits,
+        operand.immediate,
+    ))
+    .unwrap())
 }
 
 fn eval_getter(operand: &str, bits: usize, immediate: bool) -> String {
@@ -46,7 +51,12 @@ fn is_num(s: &str) -> bool {
 pub fn setter(value: &Value, map: &HashMap<String, Value>) -> tera::Result<Value> {
     let operand = try_get_value!("setter", "value", Operand, value);
     let bits = try_get_value!("setter", "bits", usize, map.get("bits").unwrap());
-    Ok(to_value(&eval_setter(&operand.name.to_lowercase(), bits, operand.immediate)).unwrap())
+    Ok(to_value(&eval_setter(
+        &operand.name.to_lowercase(),
+        bits,
+        operand.immediate,
+    ))
+    .unwrap())
 }
 
 fn eval_setter(operand: &str, bits: usize, immediate: bool) -> String {
@@ -55,6 +65,14 @@ fn eval_setter(operand: &str, bits: usize, immediate: bool) -> String {
     } else {
         format!("cpu.set_{}(", &operand)
     }
+}
+
+/// Convert an RST operand name like "00H" or "38H" to a Rust u16 literal "0x0000u16".
+pub fn rst_vector(value: &Value, _map: &HashMap<String, Value>) -> tera::Result<Value> {
+    let s = try_get_value!("rst_vector", "value", String, value);
+    let hex_str = s.trim_end_matches(|c: char| c == 'H' || c == 'h');
+    let val = u16::from_str_radix(hex_str, 16).unwrap_or(0);
+    Ok(to_value(format!("0x{:04X}u16", val)).unwrap())
 }
 
 pub fn setflag(value: &Value, map: &HashMap<String, Value>) -> tera::Result<Value> {

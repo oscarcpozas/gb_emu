@@ -1,6 +1,19 @@
 [book]
-authors = ["Óscar Caballero"]
-language = "es"
-multilingual = false
-src = "src"
 title = "Emulando la Gameboy en Rust"
+authors = ["Oscar Caballero"]
+language = "es"
+
+[output.html]
+default-theme = "rust"
+no-section-label = false
+git-repository-url = "https://github.com/oscarcpozas/gb_emu"
+
+[output.html.print]
+enable = false
+
+[output.html.playground]
+editable = false
+copyable = false
+copy-js = true
+line-numbers = false
+runnable = false

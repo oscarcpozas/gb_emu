@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Flags {
@@ -12,6 +12,10 @@ pub struct Flags {
 pub struct Operand {
     pub name: String,
     pub immediate: bool,
+    #[serde(default)]
+    pub increment: bool,
+    #[serde(default)]
+    pub decrement: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -30,7 +34,7 @@ pub struct Instruction {
     pub cycles: Vec<u16>,
     pub operands: Vec<Operand>,
     pub immediate: bool,
-    pub flags: Flags
+    pub flags: Flags,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

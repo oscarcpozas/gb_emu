@@ -1,5 +1,5 @@
-use crate::mmu::Mmu;
 use crate::instr;
+use crate::mmu::Mmu;
 
 pub struct Cpu {
     a: u8, // accumulator
@@ -11,11 +11,16 @@ pub struct Cpu {
     h: u8,
     l: u8,
     pc: u16,
-    sp: u16
+    sp: u16,
+    /// Interrupt Master Enable flag
+    pub ime: bool,
+    /// Whether CPU is halted waiting for an interrupt
+    pub halted: bool,
+    /// Pending IME enable (set after EI — takes effect after next instruction)
+    ime_pending: bool,
 }
 
 impl Cpu {
-
     pub fn new() -> Self {
         Self {
             a: 0,
@@ -27,7 +32,10 @@ impl Cpu {
             h: 0,
             l: 0,
             pc: 0,
-            sp: 0
+            sp: 0,
+            ime: false,
+            halted: false,
+            ime_pending: false,
         }
     }
 
@@ -36,10 +44,21 @@ impl Cpu {
     Function fetches an instruction code from the memory, decodes it, and updates the CPU/memory state accordingly.
     */
     pub fn fetch_n_execute(&mut self, mmu: &mut Mmu) -> usize {
+        // If halted, burn 4 cycles doing nothing until an interrupt wakes us
+        if self.halted {
+            return 4;
+        }
+
+        // Apply pending IME enable (EI takes effect after the next instruction)
+        if self.ime_pending {
+            self.ime_pending = false;
+            self.ime = true;
+        }
+
         let (inst, args) = self.fetch_op_from_mem(mmu);
         let (time, size) = instr::decode(inst, args, self, mmu);
 
-        self.pc = self.get_pc().wrapping_add(args); // Update the value of the program counter.
+        self.pc = self.get_pc().wrapping_add(size as u16); // Advance PC by the full instruction size.
 
         time
     }
@@ -60,26 +79,29 @@ impl Cpu {
 
     /// Switch the CPU state to halting.
     pub fn halt(&mut self) {
-        // TODO: self.halt = true;
+        self.halted = true;
     }
 
-    /// Disable interrupts to this CPU.
+    /// Disable interrupts (DI instruction).
     pub fn disable_interrupt(&mut self) {
-        // TODO: self.ime = false;
+        self.ime = false;
+        self.ime_pending = false;
     }
 
-    /// Enable interrupts to this CPU.
+    /// Enable interrupts (EI instruction) — takes effect after the next instruction.
     pub fn enable_interrupt(&mut self) {
-        //TODO: self.ime = true;
+        self.ime_pending = true;
     }
 
-    /// Stop the CPU.
-    pub fn stop(&self) {
-        // TODO: Stop.
+    /// Stop the CPU (low-power mode — treat as halt for now).
+    pub fn stop(&mut self) {
+        self.halted = true;
     }
 
     /// Gets the value of `z` flag in the flag register.
-    pub fn get_zf(&self) -> bool { self.f & 0x80 == 0x80 }
+    pub fn get_zf(&self) -> bool {
+        self.f & 0x80 == 0x80
+    }
 
     /// Updates the value of `z` flag in the flag register.
     pub fn set_zf(&mut self, v: bool) {
@@ -91,7 +113,9 @@ impl Cpu {
     }
 
     /// Gets the value of `n` flag in the flag register.
-    pub fn get_nf(&self) -> bool { self.f & 0x40 == 0x40 }
+    pub fn get_nf(&self) -> bool {
+        self.f & 0x40 == 0x40
+    }
 
     /// Updates the value of `n` flag in the flag register.
     pub fn set_nf(&mut self, v: bool) {
@@ -190,46 +214,74 @@ impl Cpu {
     }
 
     /// Gets the value of `a` register.
-    pub fn get_a(&self) -> u8 { self.a }
+    pub fn get_a(&self) -> u8 {
+        self.a
+    }
 
     /// Gets the value of `b` register.
-    pub fn get_b(&self) -> u8 { self.b }
+    pub fn get_b(&self) -> u8 {
+        self.b
+    }
 
     /// Gets the value of `c` register.
-    pub fn get_c(&self) -> u8 { self.c }
+    pub fn get_c(&self) -> u8 {
+        self.c
+    }
 
     /// Gets the value of `d` register.
-    pub fn get_d(&self) -> u8 { self.d }
+    pub fn get_d(&self) -> u8 {
+        self.d
+    }
 
     /// Gets the value of `e` register.
-    pub fn get_e(&self) -> u8 { self.e }
+    pub fn get_e(&self) -> u8 {
+        self.e
+    }
 
     /// Gets the value of `h` register.
-    pub fn get_h(&self) -> u8 { self.h }
+    pub fn get_h(&self) -> u8 {
+        self.h
+    }
 
     /// Gets the value of `l` register.
-    pub fn get_l(&self) -> u8 { self.l }
+    pub fn get_l(&self) -> u8 {
+        self.l
+    }
 
     /// Gets the value of `a` and `f` register as a single 16-bit register.
-    pub fn get_af(&self) -> u16 { (self.a as u16) << 8 | self.f as u16 }
+    pub fn get_af(&self) -> u16 {
+        (self.a as u16) << 8 | self.f as u16
+    }
 
     /// Gets the value of `b` and `c` register as a single 16-bit register.
-    pub fn get_bc(&self) -> u16 { (self.b as u16) << 8 | self.c as u16 }
+    pub fn get_bc(&self) -> u16 {
+        (self.b as u16) << 8 | self.c as u16
+    }
 
     /// Gets the value of `d` and `e` register as a single 16-bit register.
-    pub fn get_de(&self) -> u16 { (self.d as u16) << 8 | self.e as u16 }
+    pub fn get_de(&self) -> u16 {
+        (self.d as u16) << 8 | self.e as u16
+    }
 
     /// Gets the value of `h` and `l` register as a single 16-bit register.
-    pub fn get_hl(&self) -> u16 { (self.h as u16) << 8 | self.l as u16 }
+    pub fn get_hl(&self) -> u16 {
+        (self.h as u16) << 8 | self.l as u16
+    }
 
     /// Gets the value of the program counter.
-    pub fn get_pc(&self) -> u16 { self.pc }
+    pub fn get_pc(&self) -> u16 {
+        self.pc
+    }
 
     /// Updates the value of the program counter.
-    pub fn set_pc(&mut self, v: u16) { self.pc = v }
+    pub fn set_pc(&mut self, v: u16) {
+        self.pc = v
+    }
 
     /// Gets the value of the stack pointer register.
-    pub fn get_sp(&self) -> u16 { self.sp }
+    pub fn get_sp(&self) -> u16 {
+        self.sp
+    }
 
     /// Updates the value of the stack pointer register.
     pub fn set_sp(&mut self, v: u16) {
@@ -279,13 +331,18 @@ mod test {
 
     #[test]
     fn test_op_0x0001() {
+        // LD BC, d16 — opcode 0x01 followed by little-endian 16-bit immediate.
         let mut mmu = Mmu::new();
         let mut cpu = Cpu::new();
 
-        cpu.set_bc(0x1234);
+        mmu.set8(0x0000, 0x01); // LD BC, d16
+        mmu.set8(0x0001, 0x34); // low byte
+        mmu.set8(0x0002, 0x12); // high byte → BC = 0x1234
+
         let time = cpu.fetch_n_execute(&mut mmu);
 
         assert_eq!(time, 12);
-        assert_eq!(cpu.get_pc(), 1);
+        assert_eq!(cpu.get_pc(), 3, "3-byte instruction must advance PC by 3");
+        assert_eq!(cpu.get_bc(), 0x1234);
     }
 }
