@@ -1,0 +1,16 @@
+name: Pull requests workflow
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, synchronize, reopened]
+
+jobs:
+  tests:
+    name: Run tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Run tests
+        run: cargo test
