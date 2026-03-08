@@ -15,47 +15,77 @@ use log::*;
 use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
 pub struct Opt {
     #[structopt(name = "ROM", parse(from_os_str))]
-    rom: PathBuf,
+    rom: Option<PathBuf>,
 }
 
 fn load_rom_buffer<P: AsRef<Path>>(path: P) -> Vec<u8> {
-    let mut f = File::open(path).expect("Couldn't open file");
+    let mut f = File::open(&path).expect("Couldn't open ROM file");
     let mut buf = Vec::new();
-
-    f.read_to_end(&mut buf).expect("Couldn't read file");
-
+    f.read_to_end(&mut buf).expect("Couldn't read ROM file");
     buf
 }
 
-/*
-   Rom loaded on a vector of u8 looks like that:
-   [195, 12, 2, 0, 0, 0, 0, 0, 195, 12, 2, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 
-    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 135,
-    225, 95, 22, 0, 25, 94, 35, 86, 213, 225, 233, 255, 255, 255, 255, 255, ...]
-*/
+fn read_rom_args() -> Option<PathBuf> {
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() > 1 {
+        Some(PathBuf::from(args[1].clone()))
+    } else {
+        None
+    }
+}
 
 fn main() {
     env_logger::init();
 
     let args: Opt = Opt::from_args();
-    debug!("Reading cartridge from {:?}", &args.rom);
 
-    let rom: Vec<u8> = load_rom_buffer(&args.rom);
-    debug!("ROM size: {} Bytes", &rom.len());
-
-    debug!("Initializing GUI...");
     let gui = GUI::new();
-    let gui_arc = Hardware::new(&gui);
+    let hardware = Hardware::new(&gui);
 
-    std::thread::spawn(move || {
-        debug!("Starting emulator on separated thread");
-        Emu::run(rom, gui_arc);
-    });
+    match args.rom {
+        Some(path) => {
+            debug!("Reading cartridge from {:?}", path);
+            let rom = load_rom_buffer(&path);
+            debug!("ROM size: {} bytes", rom.len());
 
-    gui.run();
+            std::thread::spawn(move || {
+                debug!("Starting emulator thread");
+                Emu::run(rom, hardware);
+            });
+
+            gui.run(true);
+        }
+
+        None => {
+            debug!("No ROM provided — waiting for drag & drop or file picker");
+
+            // Clone the Arc so the watcher thread can observe it while the
+            // main thread is busy running the winit event loop.
+            let dropped_file: Arc<Mutex<Option<PathBuf>>> = gui.dropped_file.clone();
+
+            std::thread::spawn(move || {
+                loop {
+                    let path = dropped_file.lock().unwrap().clone();
+                    if let Some(p) = path {
+                        debug!("Loading ROM from {:?}", p);
+                        let rom = load_rom_buffer(&p);
+                        debug!("ROM size: {} bytes", rom.len());
+                        Emu::run(rom, hardware);
+                        break;
+                    }
+                    std::thread::sleep(Duration::from_millis(50));
+                }
+            });
+
+            // Show splash until the user provides a ROM, then switch to game loop.
+            gui.run(false);
+        }
+    }
 }
