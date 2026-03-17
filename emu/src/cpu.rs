@@ -1,9 +1,10 @@
 use crate::instr;
 use crate::mmu::Mmu;
 
+/// https://gbdev.io/pandocs/CPU_Registers_and_Flags.html?highlight=cpu#cpu-registers-and-flags
 pub struct Cpu {
-    a: u8, // accumulator
-    f: u8, // flags register
+    a: u8,
+    f: u8,
     b: u8,
     c: u8,
     d: u8,
@@ -39,10 +40,8 @@ impl Cpu {
         }
     }
 
-    /*
-    Execute a single instruction.
-    Function fetches an instruction code from the memory, decodes it, and updates the CPU/memory state accordingly.
-    */
+    /// Execute a single instruction
+    /// Function fetches an instruction code from the memory, decodes it, and updates the CPU/memory state accordingly
     pub fn fetch_n_execute(&mut self, mmu: &mut Mmu) -> usize {
         // If halted, burn 4 cycles doing nothing until an interrupt wakes us
         if self.halted {
@@ -58,15 +57,14 @@ impl Cpu {
         let (inst, args) = self.fetch_op_from_mem(mmu);
         let (time, size) = instr::decode(inst, args, self, mmu);
 
-        self.pc = self.get_pc().wrapping_add(size as u16); // Advance PC by the full instruction size.
+        self.pc = self.get_pc().wrapping_add(size as u16); // Advance PC by the full instruction size
 
         time
     }
 
-    /*
-    Fetch an instruction from the memory.
-    Program counter define the address of the instruction in the memory is incremented by the size of the instruction.
-    */
+
+    /// Fetch an instruction from the memory.
+    /// Program counter defines the address of the instruction in the memory is incremented by the size of the instruction
     fn fetch_op_from_mem(&self, mmu: &mut Mmu) -> (u16, u16) {
         let code = mmu.get8(self.get_pc());
         if code == 0xcb {
@@ -77,12 +75,12 @@ impl Cpu {
         }
     }
 
-    /// Switch the CPU state to halting.
+    /// Switch the CPU state to halting
     pub fn halt(&mut self) {
         self.halted = true;
     }
 
-    /// Disable interrupts (DI instruction).
+    /// Disable interrupts (DI instruction)
     pub fn disable_interrupt(&mut self) {
         self.ime = false;
         self.ime_pending = false;
@@ -310,7 +308,7 @@ mod test {
     #[test]
     fn test_fetch_first_op_from_mem() {
         let mut mmu = Mmu::new();
-        let mut cpu = Cpu::new();
+        let cpu = Cpu::new();
 
         let (inst, args) = cpu.fetch_op_from_mem(&mut mmu);
 

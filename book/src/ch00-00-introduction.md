@@ -1,23 +1,24 @@
-# Introduccion
+# Introduction
 
-> Lo primero de todo. Si has llegado hasta aquí sin saber cómo, esta es la documentación/anotaciones de mi proyecto 
-> público en [Github para emular la Gameboy en Rust](https://github.com/oscarcpozas/gb_emu).
+> [!NOTE]
+> First things first. If you've somehow ended up here, this is the documentation/notes for my
+> [Github project to emulate the Gameboy in Rust](https://github.com/oscarcpozas/gb_emu_rs).
 
-Creo que una buena forma de comprender cómo es el funcionamiento de un ordenador y sus componentes desde un punto de vista
-de software/coding es tratando de emular sus comportamientos y relaciones. Es por ello que he elegido una de las consolas 
-portátiles más míticas como lo fue la Gameboy de Nintendo. La idea es replicar el comportamiento al 100% de esta consola 
-al mismo tiempo que entender cómo funciona un sistema de este tipo.
+I think a good way to understand how a computer and its components work from a
+software/coding perspective is by trying to emulate their behaviors and relationships. That's why I chose one of the
+most iconic portable consoles ever - Nintendo's Gameboy. The idea is to replicate this console's behavior 100%
+while understanding how this type of system works.
 
-Elijo la Gameboy porque ya hay mucha documentación y otros proyectos que han cumplido con este mismo objetivo en los que
-me puedo apoyar y tratar de no alargar el proceso demasiado tiempo.
+I'm choosing the Gameboy because there's already tons of documentation and other projects that have accomplished this same goal
+that I can lean on and try not to drag the process out too long.
 
-## ¿Por qué en Rust?
+## Why Rust?
 
-Es normal que en los proyectos en los que se trata de emular sistemas se utilicen lenguajes considerados low-level 
-dado que el rendimiento es un factor clave. Sin embargo, es cierto que lo poco exigente que resulta la Gameboy para 
-los ordenadores actuales hace que podamos resolver este problema en casi cualquier lenguaje.
+It's pretty normal for projects that try to emulate systems to use languages considered low-level
+since performance is a key factor. However, it's true that the Gameboy is so undemanding for
+modern computers that we can solve this problem in pretty much any language.
 
-**Entonces, ¿por qué Rust?** Era un lenguaje de bajo nivel con el que quería probar hacer algo que resultara retador. 
-Además de que lo aprendido en este proyecto podría ser de utilidad para futuros emuladores que quiera hacer donde si 
-deba tener más en cuenta el rendimiento. También es un lenguaje con una comunidad sólida en la que poder apoyarme 
-en el camino.
+**So why Rust?** It was a low-level language I wanted to try doing something challenging with.
+Plus, what I learn from this project could be useful for future emulators I might want to make where I
+actually need to worry more about performance. It's also a language with a solid community I can lean on
+along the way.

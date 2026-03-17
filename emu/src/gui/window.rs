@@ -2,7 +2,6 @@ use minifb::{Key, KeyRepeat, Scale, Window, WindowOptions};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
 
 const WINDOW_WIDTH: usize = 160;
 const WINDOW_HEIGHT: usize = 144;
@@ -43,24 +42,19 @@ impl GUI {
 
         GUI {
             window,
-            keys_states: Arc::new(Mutex::new(GUI::new_key_states())),
-            vram: Arc::new(Mutex::new(vec![0; WINDOW_WIDTH * WINDOW_HEIGHT])),
             escape: Arc::new(AtomicBool::new(false)),
             muted: Arc::new(AtomicBool::new(false)),
+            vram: Arc::new(Mutex::new(vec![0; WINDOW_WIDTH * WINDOW_HEIGHT])),
+            keys_states: Arc::new(Mutex::new(GUI::new_key_states())),
         }
     }
 
     pub fn run(mut self) {
         while !self.escape.load(Ordering::Relaxed) && self.window.is_open() {
-            std::thread::sleep(Duration::from_millis(10));
             self.update_vram();
             self.get_key_update();
         }
         self.escape.store(true, Ordering::Relaxed);
-    }
-
-    pub fn is_alive(&self) -> bool {
-        return self.window.is_open();
     }
 
     fn new_key_states() -> HashMap<GameBoyKey, bool> {
@@ -84,7 +78,6 @@ impl GUI {
     }
 
     fn get_key_update(&mut self) {
-        // Toggle mute on a single M key press (not while held)
         for key in self.window.get_keys_pressed(KeyRepeat::No) {
             if key == Key::M {
                 let prev = self.muted.load(Ordering::Relaxed);
@@ -99,15 +92,15 @@ impl GUI {
 
         for key in self.window.get_keys() {
             let gb_key = match key {
-                minifb::Key::Right => GameBoyKey::Right,
-                minifb::Key::Left => GameBoyKey::Left,
-                minifb::Key::Up => GameBoyKey::Up,
-                minifb::Key::Down => GameBoyKey::Down,
-                minifb::Key::Z => GameBoyKey::A,
-                minifb::Key::X => GameBoyKey::B,
-                minifb::Key::Space => GameBoyKey::Select,
-                minifb::Key::Enter => GameBoyKey::Start,
-                minifb::Key::Escape => {
+                Key::Right => GameBoyKey::Right,
+                Key::Left => GameBoyKey::Left,
+                Key::Up => GameBoyKey::Up,
+                Key::Down => GameBoyKey::Down,
+                Key::A => GameBoyKey::A,
+                Key::S => GameBoyKey::B,
+                Key::Space => GameBoyKey::Select,
+                Key::Enter => GameBoyKey::Start,
+                Key::Escape => {
                     self.escape.store(true, Ordering::Relaxed);
                     return;
                 }

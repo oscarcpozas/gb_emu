@@ -37,11 +37,10 @@ const COLOR_DARK_GREEN: u32 = 0xFF306230;
 const COLOR_BLACK: u32 = 0xFF0F380F;
 
 /// Picture Processing Unit (PPU)
-/// Responsible for rendering graphics to the screen
 pub struct Ppu {
     /// Video RAM (8KB)
     vram: Vec<u8>,
-    /// Object Attribute Memory (OAM) - for sprites
+    /// Object Attribute Memory (OAM)
     oam: Vec<u8>,
     /// LCD Control Register (0xFF40)
     lcdc: u8,
@@ -384,11 +383,10 @@ impl Ppu {
         }
     }
 
-    /// Execute a pending OAM DMA transfer. Called from emu.rs with a full MMU read slice.
-    /// Copies 160 bytes from (page * 0x100) into OAM.
+    /// Execute a pending OAM DMA transfer. Copies 160 bytes from (page * 0x100) into OAM.
     pub fn execute_dma(&mut self, src: &[u8]) {
-        let len = src.len().min(0xA0);
-        self.oam[..len].copy_from_slice(&src[..len]);
+        assert!(src.len() >= 0xA0);
+        self.oam[..0xA0].copy_from_slice(&src[..0xA0]);
     }
 
     /// Get a byte from VRAM

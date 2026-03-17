@@ -1,6 +1,6 @@
-pub mod apu;
+pub mod audio;
 pub mod boot;
-pub mod gpu;
+pub mod graphics;
 pub mod interrupt;
 pub mod joypad;
 pub mod mbc;

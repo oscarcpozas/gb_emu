@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 /// Joypad register (0xFF00).
 ///
 /// Writing selects which group to read:
-///   bit 5 = 0 → select action  buttons (A, B, Select, Start)
+///   bit 5 = 0 → select action buttons (A, B, Select, Start)
 ///   bit 4 = 0 → select direction buttons (Right, Left, Up, Down)
 ///
 /// Reading returns the state of the selected group (active-low: 0 = pressed).

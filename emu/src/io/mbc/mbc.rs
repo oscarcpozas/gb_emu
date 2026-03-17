@@ -1,6 +1,7 @@
 use crate::mmu::{MemRead, MemWrite};
 use std::fmt;
 
+// Memory Bank Controller
 pub trait Mbc {
     fn get_name(&self) -> &str;
     fn on_read(&self, addr: u16) -> MemRead;
