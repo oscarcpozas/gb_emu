@@ -53,7 +53,11 @@ I use them to measure how close the emulator is to accurate, full-system emulati
 |:----------------------------------:|:----------------------------:|:--------------------------------:|
 |           🔴 **FAILED**            |        🔴 **FAILED**         |          🟢 **PASSED**           |
 
-## References:
+| ![](art/blargg_dmg_sound.png) | ![](art/blargg_mem_timing.png) | ![](art/blargg_interrupt_time.png) |
+|:-----------------------------:|:------------------------------:|:----------------------------------:|
+|         🔴 **FAILED**         |         🔴 **FAILED**          |           🔴 **FAILED**            |
+
+## References
 
 - [Pan Docs, probably the most complete technical documentation about Gameboy](https://gbdev.io/pandocs)
 - [Gameboy autopsy Part 1](https://youtu.be/RZUDEaLa5Nw?si=Q-ucB-I7NUxuPWrc), [Part 1.5](https://youtu.be/t0V-D2YMhrs?si=cTMZwGE_y_6j399J), [Part 2](https://youtu.be/ecTQVa42sJc?si=5-1cYGUUf4kb6_ev)
