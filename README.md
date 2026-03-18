@@ -49,9 +49,9 @@ Blargg’s GB tests are a collection of ROMs designed to verify different parts 
 instructions and timing, graphics, sound, and a few well-known hardware quirks such as the OAM bug and the halt bug. 
 I use them to measure how close the emulator is to accurate, full-system emulation.
 
-|     ![](art/blargg_cgb_sound_test.png)     |        ![](art/blargg_halt_bug.png)        |       ![](art/blargg_instr_timing.png)       |
-|:------------------------------------------:|:------------------------------------------:|:--------------------------------------------:|
-| **<span style="color:red;">FAILED</span>** | **<span style="color:red;">FAILED</span>** | **<span style="color:green;">PASSED</span>** |
+| ![](art/blargg_cgb_sound_test.png) | ![](art/blargg_halt_bug.png) | ![](art/blargg_instr_timing.png) |
+|:----------------------------------:|:----------------------------:|:--------------------------------:|
+|           🔴 **FAILED**            |        🔴 **FAILED**         |          🟢 **PASSED**           |
 
 ## References:
 
